@@ -28,6 +28,7 @@ import MenuOpenIcon from '@mui/icons-material/MenuOpen';
 import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import SecurityIcon from '@mui/icons-material/Security';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
+import FactCheckIcon from '@mui/icons-material/FactCheck';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo_image from '../../../public/logo.png';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -68,16 +69,18 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, tog
         menuItems.push({ text: 'Department', icon: <BusinessIcon />, path: '/departments' });
     }
 
-    if (can('employees', 'read')) {
-        menuItems.push({ text: 'Organization Chart', icon: <AccountTreeIcon />, path: '/organization' });
+
+
+    if (can('leave_policies', 'read')) {
+        menuItems.push({ text: 'Leave Policies', icon: <FactCheckIcon />, path: '/admin/policies' });
     }
 
-    /*
+
     // Leaves: Manager vs Employee
     if (can('leaves', 'read')) { // Can view all leaves
         menuItems.push({ text: 'Leaves Management', icon: <EventNoteIcon />, path: '/leaves' });
     }
-    */
+
 
     /*
     // Attendance: Manager vs Employee

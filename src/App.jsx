@@ -1,37 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 import { AuthProvider } from './context/AuthContext';
-import { ThemeProviderWrapper } from './context/ThemeContext'; // Import the new wrapper
-import PrivateRoute from './routes/PrivateRoute';
-import Layout from './layouts/components/Layout';
-import Login from './features/auth/pages/Login';
-import Register from './features/auth/pages/Register';
-import ForgotPassword from './features/auth/pages/ForgotPassword';
-import ResetPassword from './features/auth/pages/ResetPassword';
-import MFASetup from './features/auth/pages/MFASetup';
-import Dashboard from './features/dashboard/pages/Dashboard';
-import Employees from './features/employees/pages/Employees';
-import Departments from './features/departments/pages/Departments';
-import Leaves from './features/leaves/pages/Leaves';
-import Attendance from './features/attendance/pages/Attendance';
-import Unauthorized from './features/auth/pages/Unauthorized';
-import ForcePasswordChange from './features/auth/pages/ForcePasswordChange';
-
-// Admin pages
-import AdminDashboard from './features/dashboard/pages/AdminDashboard';
-import UserManagement from './features/users/pages/UserManagement';
-import Payroll from './features/payroll/pages/Payroll';
-import EngagementDashboard from './features/dashboard/pages/EngagementDashboard';
-import Biometric from './features/attendance/pages/Biometric';
-import Roles from './features/roles/pages/Roles';
-import Payslips from './features/payroll/pages/Payslips';
-
-// Employee pages
-import EmployeeDashboard from './features/dashboard/pages/EmployeeDashboard';
-import EmployeeEngagement from './features/engagement/pages/EmployeeEngagement';
-import EmployeeProfile from './features/employees/pages/EmployeeProfile';
-import OrganizationChart from './features/employees/pages/OrganizationChart';
+import { ThemeProviderWrapper } from './context/ThemeContext';
+import AppRoutes from './routes/AppRoutes';
 
 function App() {
     return (
@@ -39,130 +11,7 @@ function App() {
             <ThemeProviderWrapper>
                 <AuthProvider>
                     <Router>
-                        <Routes>
-                            <Route path="/login" element={<Login />} />
-                            <Route path="/register" element={<Register />} />
-                            <Route path="/forgot-password" element={<ForgotPassword />} />
-                            <Route path="/reset-password/:token" element={<ResetPassword />} />
-                            <Route path="/force-password-change" element={<ForcePasswordChange />} />
-                            <Route path="/unauthorized" element={<Unauthorized />} />
-
-                            <Route
-                                path="/"
-                                element={
-                                    <PrivateRoute>
-                                        <Layout />
-                                    </PrivateRoute>
-                                }
-                            >
-                                <Route index element={<Navigate to="/dashboard" replace />} />
-
-                                {/* Admin routes */}
-                                <Route
-                                    path="admin/dashboard"
-                                    element={
-                                        <PrivateRoute requiredRole="admin">
-                                            <AdminDashboard />
-                                        </PrivateRoute>
-                                    }
-                                />
-                                <Route
-                                    path="admin/users"
-                                    element={
-                                        <PrivateRoute requiredPermission="users:read">
-                                            <UserManagement />
-                                        </PrivateRoute>
-                                    }
-                                />
-                                <Route
-                                    path="admin/payroll"
-                                    element={
-                                        <PrivateRoute requiredPermission="payroll:read">
-                                            <Payroll />
-                                        </PrivateRoute>
-                                    }
-                                />
-                                <Route
-                                    path="admin/engagement"
-                                    element={
-                                        <PrivateRoute requiredPermission="surveys:read">
-                                            <EngagementDashboard />
-                                        </PrivateRoute>
-                                    }
-                                />
-                                <Route
-                                    path="admin/biometric"
-                                    element={
-                                        <PrivateRoute requiredPermission="biometric:read">
-                                            <Biometric />
-                                        </PrivateRoute>
-                                    }
-                                />
-                                <Route
-                                    path="admin/roles"
-                                    element={
-                                        <PrivateRoute requiredPermission="roles:read">
-                                            <Roles />
-                                        </PrivateRoute>
-                                    }
-                                />
-
-                                {/* HR/Admin routes */}
-                                <Route path="dashboard" element={<EmployeeDashboard />} />
-
-                                <Route
-                                    path="employees"
-                                    element={
-                                        <PrivateRoute requiredPermission="employees:read">
-                                            <Employees />
-                                        </PrivateRoute>
-                                    }
-                                />
-                                <Route
-                                    path="departments"
-                                    element={
-                                        <PrivateRoute requiredPermission="departments:read">
-                                            <Departments />
-                                        </PrivateRoute>
-                                    }
-                                />
-                                <Route
-                                    path="leaves"
-                                    element={
-                                        <PrivateRoute requiredPermission="leaves:read">
-                                            <Leaves />
-                                        </PrivateRoute>
-                                    }
-                                />
-                                <Route
-                                    path="attendance"
-                                    element={
-                                        <PrivateRoute requiredPermission="attendance:read">
-                                            <Attendance />
-                                        </PrivateRoute>
-                                    }
-                                />
-                                <Route
-                                    path="organization"
-                                    element={
-                                        <PrivateRoute requiredPermission="employees:read">
-                                            <OrganizationChart />
-                                        </PrivateRoute>
-                                    }
-                                />
-                                <Route path="settings/security" element={<MFASetup />} />
-
-                                {/* Employee routes */}
-                                <Route path="employee/dashboard" element={<Dashboard />} />
-                                <Route path="employee/profile" element={<EmployeeProfile />} />
-                                <Route path="employee/leaves" element={<Leaves />} />
-                                <Route path="employee/attendance" element={<Attendance />} />
-                                <Route path="employee/payslips" element={<Payslips />} />
-                                <Route path="employee/engagement" element={<EmployeeEngagement />} />
-                            </Route>
-
-                            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-                        </Routes>
+                        <AppRoutes />
                     </Router>
                 </AuthProvider>
             </ThemeProviderWrapper>
