@@ -14,7 +14,7 @@ import SocialsWidget from '../components/SocialsWidget';
 import EventsWidget from '../components/EventsWidget';
 
 import { useGetLeaveStatsQuery, useGetAllLeavesQuery } from '../../leaves/store/leaveApi';
-import { useGetUpcomingHolidayQuery } from '../../holidays/store/holidayApi';
+
 import { useGetPolicyStatsQuery } from '../../policies/store/policyApi';
 import { format, isAfter, isSameDay, parseISO } from 'date-fns';
 
@@ -30,9 +30,7 @@ const EmployeeDashboard = () => {
 
     const { data: leaveStats } = useGetLeaveStatsQuery();
     const { data: allLeavesData } = useGetAllLeavesQuery({});
-    const { data: holidayData } = useGetUpcomingHolidayQuery();
     const { data: policyData } = useGetPolicyStatsQuery();
-    console.log("holidayData", holidayData);
     console.log("allLeavesData", allLeavesData);
     console.log("policyData", policyData);
     console.log("leaveStats", leaveStats);
@@ -59,9 +57,9 @@ const EmployeeDashboard = () => {
         date: format(parseISO(upcomingLeave.start_date), 'dd MMM'),
         day: upcomingLeave.leave_type
     } : {
-        name: holidayData?.name || 'Upcoming holiday',
-        date: holidayData?.date ? format(new Date(holidayData.date), 'dd MMM') : '--',
-        day: holidayData?.date ? format(new Date(holidayData.date), 'EEE') : ''
+        name: 'No upcoming events',
+        date: '--',
+        day: ''
     };
 
     // Format policy data if available

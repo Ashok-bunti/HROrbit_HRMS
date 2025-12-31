@@ -17,8 +17,16 @@ import {
     IconButton,
     Tooltip,
     LinearProgress,
-    Autocomplete
+    Autocomplete,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    DialogActions,
+    alpha,
+    useTheme
 } from '@mui/material';
+
 import PersonIcon from '@mui/icons-material/Person';
 import SaveIcon from '@mui/icons-material/Save';
 import EditIcon from '@mui/icons-material/Edit';
@@ -48,6 +56,7 @@ import {
 import MFASetup from '../../auth/pages/MFASetup';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
 import useSnackbar from '../../../hooks/useSnackbar';
+import FileDropZone from '../../../components/common/FileDropZone';
 
 const maskValue = (value, visibleLast = 4) => {
     if (!value) return '';
@@ -57,6 +66,7 @@ const maskValue = (value, visibleLast = 4) => {
 };
 
 const EmployeeProfile = () => {
+    const theme = useTheme();
     const { user, token } = useAuth();
     const [searchParams] = useSearchParams();
     const targetUserId = searchParams.get('userId') || user?.id;
@@ -110,6 +120,9 @@ const EmployeeProfile = () => {
     const [updateProfile, { isLoading: isUpdating }] = useUpdateOwnProfileMutation();
     const [uploadDocument, { isLoading: isUploading }] = useUploadDocumentMutation();
     const [deleteDocument] = useDeleteDocumentMutation();
+
+    // Delete Confirmation State
+    const [deleteConfirm, setDeleteConfirm] = useState({ open: false, type: null, label: '' });
 
     useEffect(() => {
         if (employeeData?.employee) {
@@ -223,8 +236,8 @@ const EmployeeProfile = () => {
         }
     };
 
-    const handleFileUpload = async (event, documentType) => {
-        const file = event.target.files[0];
+    const handleFileUpload = async (fileOrEvent, documentType) => {
+        const file = fileOrEvent.target ? fileOrEvent.target.files[0] : fileOrEvent;
         if (!file) return;
 
         // File type validation
@@ -253,8 +266,7 @@ const EmployeeProfile = () => {
             const formats = documentType === 'passport_photo'
                 ? 'PNG, JPG, or JPEG'
                 : 'PDF, PNG, JPG, or JPEG';
-            setError(`Invalid file type for ${typeLabel}. Please upload ${formats} format only.`);
-            event.target.value = ''; // Reset file input
+            showSnackbar(`Invalid file type for ${typeLabel}. Please upload ${formats} format only.`, 'error');
             return;
         }
 
@@ -262,7 +274,6 @@ const EmployeeProfile = () => {
         const maxSize = 5 * 1024 * 1024; // 5MB in bytes
         if (file.size > maxSize) {
             showSnackbar('File size exceeds 5MB. Please upload a smaller file.', 'error');
-            event.target.value = ''; // Reset file input
             return;
         }
 
@@ -283,10 +294,8 @@ const EmployeeProfile = () => {
 
             refetch();
             refetchDocs();
-            event.target.value = ''; // Reset file input
         } catch (err) {
             showSnackbar(err.data?.error || `Failed to upload ${documentType}`, 'error');
-            event.target.value = ''; // Reset file input
         }
     };
 
@@ -318,19 +327,23 @@ const EmployeeProfile = () => {
         }
     };
 
-    const handleDeleteDoc = async (documentType) => {
-        if (!window.confirm(`Are you sure you want to delete this document?`)) return;
-
+    const handleDeleteDoc = async () => {
+        const { type, label } = deleteConfirm;
         try {
             await deleteDocument({
                 userId: targetUserId,
-                documentType
+                documentType: type
             }).unwrap();
-            showSnackbar(`${documentType.replace(/_/g, ' ')} deleted successfully`, 'success');
+            showSnackbar(`${label} deleted successfully`, 'success');
+            setDeleteConfirm({ open: false, type: null, label: '' });
             refetchDocs();
         } catch (err) {
-            showSnackbar(err.data?.error || `Failed to delete ${documentType}`, 'error');
+            showSnackbar(err.data?.error || `Failed to delete ${label}`, 'error');
         }
+    };
+
+    const openDeleteConfirm = (type, label) => {
+        setDeleteConfirm({ open: true, type, label });
     };
 
     if (isLoading) {
@@ -422,50 +435,72 @@ const EmployeeProfile = () => {
 
                             <Box sx={{ textAlign: 'center', px: 2, pb: 3, mt: -5 }}>
                                 <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
-                                    <Avatar
-                                        src={
-                                            employee.documents?.passport_photo
-                                                ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/employees/${targetUserId}/documents/passport_photo/view?t=${imageTimestamp}&token=${token}`
-                                                : undefined
-                                        }
-                                        sx={{
-                                            width: 110,
-                                            height: 110,
-                                            bgcolor: 'primary.main',
-                                            fontSize: 44,
-                                            border: '4px solid white',
-                                            boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
-                                        }}
-                                    >
-                                        {employee.first_name?.[0]}
-                                        {employee.last_name?.[0]}
-                                    </Avatar>
+                                    {/* The entire avatar area is now a drop zone */}
+                                    <Box sx={{ position: 'relative', width: 110, height: 110 }}>
+                                        <Avatar
+                                            src={
+                                                employee.documents?.passport_photo
+                                                    ? `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/employees/${targetUserId}/documents/passport_photo/view?t=${imageTimestamp}&token=${token}`
+                                                    : undefined
+                                            }
+                                            sx={{
+                                                width: 110,
+                                                height: 110,
+                                                bgcolor: 'primary.main',
+                                                fontSize: 44,
+                                                border: '4px solid white',
+                                                boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
+                                            }}
+                                        >
+                                            <PersonIcon sx={{ fontSize: 64 }} />
+                                        </Avatar>
 
-                                    {isOwnProfile && (
-                                        <IconButton
-                                            component="label"
+                                        {isOwnProfile && (
+                                            <Box
+                                                sx={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    borderRadius: '50%',
+                                                    overflow: 'hidden',
+                                                    zIndex: 1
+                                                }}
+                                            >
+                                                <FileDropZone
+                                                    variant="mini"
+                                                    showIcon={false}
+                                                    accept=".png,.jpg,.jpeg"
+                                                    onFileSelect={(file) => handleFileUpload(file, 'passport_photo')}
+                                                    isLoading={isUploading}
+                                                />
+                                            </Box>
+                                        )}
+                                    </Box>
+
+                                    {/* Overlay Cloud Upload Icon when not dragging - visual hint */}
+                                    {isOwnProfile && !isUploading && (
+                                        <Box
                                             sx={{
                                                 position: 'absolute',
                                                 bottom: 6,
                                                 right: 6,
                                                 bgcolor: 'white',
+                                                color: 'primary.main',
                                                 boxShadow: 3,
-                                                '&:hover': { bgcolor: '#f5f5f5' },
-                                                width: 34,
-                                                height: 34,
+                                                width: 32,
+                                                height: 32,
+                                                borderRadius: '50%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                pointerEvents: 'none', // Allow clicks/drags to pass to FileDropZone below
+                                                zIndex: 2
                                             }}
-                                            size="small"
                                         >
-                                            <input
-                                                hidden
-                                                accept=".png,.jpg,.jpeg"
-                                                type="file"
-                                                onChange={(e) =>
-                                                    handleFileUpload(e, 'passport_photo')
-                                                }
-                                            />
-                                            <CloudUploadIcon fontSize="small" color="primary" />
-                                        </IconButton>
+                                            <CloudUploadIcon fontSize="small" />
+                                        </Box>
                                     )}
                                 </Box>
 
@@ -874,14 +909,16 @@ const EmployeeProfile = () => {
                                                 <Box
                                                     key={doc.type}
                                                     sx={{
-                                                        p: 2.5,
+                                                        p: 3,
                                                         height: '100%',
+                                                        bgcolor: 'background.paper',
                                                         border: '1px solid',
-                                                        borderColor: docInfo?.exists ? 'success.light' : 'divider',
+                                                        borderColor: docInfo?.exists ? alpha(theme.palette.success.main, 0.2) : 'divider',
                                                         borderRadius: 2,
                                                         display: 'flex',
                                                         flexDirection: 'column',
                                                         justifyContent: 'space-between',
+
                                                     }}
                                                 >
                                                     <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
@@ -941,29 +978,57 @@ const EmployeeProfile = () => {
                                                         )}
                                                     </Box>
 
-                                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+                                                    <Box sx={{ mt: 'auto', pt: 2 }}>
                                                         {isOwnProfile && (
-                                                            <Button
-                                                                component="label"
-                                                                fullWidth
-                                                                size="small"
-                                                                startIcon={<CloudUploadIcon />}
-                                                                variant={docInfo?.exists ? "text" : "outlined"}
-                                                                sx={{ borderRadius: 2, fontWeight: 700 }}
-                                                            >
-                                                                {docInfo?.exists ? 'Re-upload' : 'Choose File'}
-                                                                <input
-                                                                    hidden
-                                                                    type="file"
-                                                                    accept=".pdf,.png,.jpg,.jpeg"
-                                                                    onChange={(e) => handleFileUpload(e, doc.type)}
-                                                                />
-                                                            </Button>
-                                                        )}
-                                                        {docInfo?.exists && isOwnProfile && (
-                                                            <IconButton size="small" color="error" onClick={() => handleDeleteDoc(doc.type)} sx={{ border: '1px solid currentColor', borderRadius: 2 }}>
-                                                                <DeleteIcon fontSize="small" />
-                                                            </IconButton>
+                                                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                                                {!docInfo?.exists ? (
+                                                                    <FileDropZone
+                                                                        height={80}
+                                                                        label="Drop File Here"
+                                                                        subLabel="Click to Browse"
+                                                                        onFileSelect={(file) => handleFileUpload(file, doc.type)}
+                                                                        isLoading={isUploading}
+                                                                    />
+                                                                ) : (
+                                                                    <Button
+                                                                        component="label"
+                                                                        fullWidth
+                                                                        size="small"
+                                                                        startIcon={<CloudUploadIcon />}
+                                                                        variant="text"
+                                                                        sx={{ borderRadius: 2, fontWeight: 700 }}
+                                                                    >
+                                                                        Re-upload
+                                                                        <input
+                                                                            hidden
+                                                                            type="file"
+                                                                            accept=".pdf,.png,.jpg,.jpeg"
+                                                                            onChange={(e) => handleFileUpload(e, doc.type)}
+                                                                        />
+                                                                    </Button>
+                                                                )}
+
+                                                                {docInfo?.exists && (
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        color="error"
+                                                                        onClick={() => openDeleteConfirm(doc.type, doc.label)}
+                                                                        sx={{
+                                                                            border: '1px solid',
+                                                                            borderColor: 'error.light',
+                                                                            borderRadius: 2,
+                                                                            transition: 'all 0.2s',
+                                                                            '&:hover': {
+                                                                                bgcolor: 'error.main',
+                                                                                color: 'white',
+                                                                                borderColor: 'error.main'
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <DeleteIcon fontSize="small" />
+                                                                    </IconButton>
+                                                                )}
+                                                            </Box>
                                                         )}
                                                     </Box>
                                                 </Box>
@@ -987,6 +1052,45 @@ const EmployeeProfile = () => {
                 message={snackbar.message}
                 severity={snackbar.severity}
             />
+
+            {/* Custom Delete Confirmation Dialog */}
+            <Dialog
+                open={deleteConfirm.open}
+                onClose={() => setDeleteConfirm({ ...deleteConfirm, open: false })}
+                PaperProps={{
+                    sx: { borderRadius: 3, p: 1, width: '100%', maxWidth: 400 }
+                }}
+            >
+                <DialogTitle sx={{ fontWeight: 800, fontSize: '1.25rem', pb: 1 }}>
+                    Confirm Deletion
+                </DialogTitle>
+                <DialogContent>
+                    <DialogContentText sx={{ fontWeight: 500, color: 'text.secondary' }}>
+                        Are you sure you want to delete <strong>{deleteConfirm.label}</strong>? This action cannot be undone and you may need to re-upload it for verification.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button
+                        onClick={() => setDeleteConfirm({ ...deleteConfirm, open: false })}
+                        color="inherit"
+                        sx={{ borderRadius: 2, fontWeight: 700 }}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleDeleteDoc}
+                        variant="contained"
+                        color="error"
+                        sx={{
+                            borderRadius: 2,
+                            fontWeight: 700,
+                            boxShadow: '0 4px 12px rgba(211, 47, 47, 0.2)'
+                        }}
+                    >
+                        Delete Permanently
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };
