@@ -211,3 +211,8 @@
 .fc .fc-button-primary:focus {
     box-shadow: none !important;
 }
+
+.fc .fc-today-button {
+    border: 1px solid var(--calendar-border) !important;
+    padding: 8px 20px !important;
+}
