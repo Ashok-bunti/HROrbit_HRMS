@@ -70,6 +70,9 @@ const Leaves = () => {
     const [formError, setFormError] = useState('');
     const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
     const [leaveToDeleteId, setLeaveToDeleteId] = useState(null);
+    const [rejectionDialogOpen, setRejectionDialogOpen] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState('');
+    const [leaveToRejectId, setLeaveToRejectId] = useState(null);
 
     const isAdmin = isUserAdmin || isHR;
 
@@ -130,15 +133,26 @@ const Leaves = () => {
         }
     };
 
-    const handleReject = async (id) => {
-        const reason = prompt('Enter rejection reason:');
-        if (reason) {
-            try {
-                await rejectLeave({ id, rejection_reason: reason }).unwrap();
-                showSnackbar('Leave request rejected', 'info');
-            } catch (err) {
-                showSnackbar(err.data?.error || 'Failed to reject leave request', 'error');
-            }
+    const handleRejectClick = (id) => {
+        setLeaveToRejectId(id);
+        setRejectionReason('');
+        setRejectionDialogOpen(true);
+    };
+
+    const handleConfirmReject = async () => {
+        if (!rejectionReason.trim()) {
+            showSnackbar('Please enter a rejection reason', 'error');
+            return;
+        }
+
+        try {
+            await rejectLeave({ id: leaveToRejectId, reason: rejectionReason }).unwrap();
+            setRejectionDialogOpen(false);
+            setLeaveToRejectId(null);
+            setRejectionReason('');
+            showSnackbar('Leave request rejected', 'info');
+        } catch (err) {
+            showSnackbar(err.data?.error || 'Failed to reject leave request', 'error');
         }
     };
 
@@ -233,14 +247,32 @@ const Leaves = () => {
         },
         {
             field: 'reason',
-            headerName: 'REASON',
-            flex: 1.5,
-            minWidth: 250,
-            align: 'left',
-            headerAlign: 'left',
+            headerName: 'LEAVE REASON',
+            flex: 1,
+            minWidth: 200,
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
                     {params.value || '- -'}
+                </Box>
+            )
+        },
+        {
+            field: 'rejection_reason',
+            headerName: 'REJECTION REMARK',
+            flex: 1,
+            minWidth: 200,
+            renderCell: (params) => (
+                <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
+                    <Typography
+                        variant="body2"
+                        sx={{
+                            color: params.value ? 'error.main' : 'text.disabled',
+                            fontStyle: params.value ? 'italic' : 'normal',
+                            fontSize: '0.825rem'
+                        }}
+                    >
+                        {params.value || (params.row.status === 'Rejected' ? 'No remark' : '- -')}
+                    </Typography>
                 </Box>
             )
         },
@@ -255,15 +287,24 @@ const Leaves = () => {
                 if (params.value === 'Approved') color = 'success';
                 if (params.value === 'Rejected') color = 'error';
                 if (params.value === 'Pending') color = 'warning';
+
+                const tooltipText = params.value === 'Rejected'
+                    ? `Reason: ${params.row.rejection_reason || 'Not specified'}`
+                    : params.value === 'Approved'
+                        ? `Approved by: ${params.row.approver_email || 'Approver'}`
+                        : 'Awaiting approval';
+
                 return (
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                        <Chip
-                            label={params.value || '- -'}
-                            color={color}
-                            size="small"
-                            variant="outlined"
-                            sx={{ fontWeight: 600, minWidth: 90 }}
-                        />
+                        <Tooltip title={tooltipText} arrow placement="top">
+                            <Chip
+                                label={params.value || '- -'}
+                                color={color}
+                                size="small"
+                                variant="outlined"
+                                sx={{ fontWeight: 600, minWidth: 90 }}
+                            />
+                        </Tooltip>
                     </Box>
                 );
             }
@@ -301,7 +342,7 @@ const Leaves = () => {
                             key={`reject-${params.id}`}
                             icon={<Tooltip title="Reject"><Close fontSize="small" /></Tooltip>}
                             label="Reject"
-                            onClick={() => handleReject(params.row.id)}
+                            onClick={() => handleRejectClick(params.row.id)}
                             sx={{
                                 color: 'error.main',
                                 border: 1,
@@ -347,7 +388,8 @@ const Leaves = () => {
     const filteredLeaves = (data?.leaves || []).filter(leave =>
         leave.employee_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         leave.leave_type?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        leave.reason?.toLowerCase().includes(searchTerm.toLowerCase())
+        leave.reason?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        leave.rejection_reason?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return (
@@ -579,6 +621,38 @@ const Leaves = () => {
                 <DialogActions sx={{ p: 2 }}>
                     <Button onClick={handleCloseDialog} variant="outlined" color="error">Cancel</Button>
                     <Button onClick={handleSubmit} variant="contained" sx={{ borderRadius: 2 }}>Apply</Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog open={rejectionDialogOpen} onClose={() => setRejectionDialogOpen(false)} maxWidth="xs" fullWidth>
+                <DialogTitle>Reject Leave Request</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        Please provide a reason for rejecting this leave request.
+                    </Typography>
+                    <TextField
+                        fullWidth
+                        multiline
+                        rows={3}
+                        label="Rejection Reason"
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        placeholder="Enter reason here..."
+                        autoFocus
+                    />
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 3 }}>
+                    <Button onClick={() => setRejectionDialogOpen(false)} color="inherit">
+                        Cancel
+                    </Button>
+                    <Button
+                        onClick={handleConfirmReject}
+                        variant="contained"
+                        color="error"
+                        disabled={!rejectionReason.trim()}
+                    >
+                        Reject Request
+                    </Button>
                 </DialogActions>
             </Dialog>
 
