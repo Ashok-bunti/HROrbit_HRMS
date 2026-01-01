@@ -249,7 +249,7 @@ const CompanyCalendar = () => {
                                 initialView="dayGridMonth"
                                 eventContent={renderEventContent}
                                 headerToolbar={{
-                                    left: 'prev,next today',
+                                    left: 'prev today next',
                                     center: 'title',
                                     right: 'dayGridMonth,timeGridWeek,timeGridDay'
                                 }}
