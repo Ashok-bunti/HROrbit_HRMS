@@ -132,7 +132,20 @@ const CompanyCalendar = () => {
 
     return (
         <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Box sx={{ p: { xs: 1, md: 3 }, minHeight: '100vh' }}>
+            <Box sx={{
+                p: { xs: 1, md: 3 },
+                minHeight: '100vh',
+                bgcolor: 'background.default',
+                '--calendar-bg': theme.palette.background.paper,
+                '--calendar-header-bg': theme.palette.mode === 'dark' ? alpha(theme.palette.background.default, 0.5) : '#f8fafc',
+                '--calendar-border': theme.palette.divider,
+                '--calendar-text-main': theme.palette.text.primary,
+                '--calendar-text-muted': theme.palette.text.secondary,
+                '--calendar-day-hover': theme.palette.action.hover,
+                '--calendar-button-group-bg': theme.palette.action.selected,
+                '--calendar-button-active-bg': theme.palette.background.paper,
+                '--calendar-sidebar-bg': theme.palette.mode === 'dark' ? alpha(theme.palette.background.paper, 0.5) : '#f8fafc',
+            }}>
                 <PageHeader
                     title="Company Calendar"
                     subtitle="Sync up with your team's schedule"
@@ -164,7 +177,7 @@ const CompanyCalendar = () => {
                 <Box sx={{ display: 'flex', mt: 3, gap: 3, height: 'calc(100vh - 180px)' }}>
                     {/* Left Sidebar - Premium Layout */}
                     <Box sx={{ width: 300, display: { xs: 'none', lg: 'flex' }, flexDirection: 'column', gap: 3 }}>
-                        <Paper sx={{ p: 2, borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0' }}>
+                        <Paper sx={{ p: 2, borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid', borderColor: 'divider', bgcolor: 'var(--calendar-bg)' }}>
                             <DatePicker
                                 value={currentDate}
                                 onChange={(newValue) => {
@@ -179,12 +192,12 @@ const CompanyCalendar = () => {
                             />
                         </Paper>
 
-                        <Paper sx={{ p: 3, borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid #e2e8f0', flex: 1 }}>
+                        <Paper sx={{ p: 3, borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid', borderColor: 'divider', flex: 1, bgcolor: 'var(--calendar-bg)' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between' }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1e293b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                                     Filters
                                 </Typography>
-                                <FilterIcon sx={{ fontSize: 18, color: '#64748b' }} />
+                                <FilterIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
                             </Box>
 
                             <List sx={{ '& .MuiListItem-root': { px: 0, py: 0.5 } }}>
@@ -209,7 +222,7 @@ const CompanyCalendar = () => {
                                             primary={filter.label}
                                             primaryTypographyProps={{
                                                 variant: 'body2',
-                                                sx: { fontWeight: 600, color: '#475569' }
+                                                sx: { fontWeight: 600, color: 'text.primary' }
                                             }}
                                         />
                                     </ListItem>
@@ -218,8 +231,8 @@ const CompanyCalendar = () => {
 
                             <Divider sx={{ my: 3 }} />
 
-                            <Box sx={{ p: 2, bgcolor: '#f8fafc', borderRadius: '16px', border: '1px dashed #cbd5e1' }}>
-                                <Typography variant="caption" sx={{ color: '#64748b', display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: '16px', border: '1px dashed', borderColor: 'divider' }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <InfoIcon sx={{ fontSize: 14 }} />
                                     Tip: Click on any date to create a new event.
                                 </Typography>
@@ -229,7 +242,7 @@ const CompanyCalendar = () => {
 
                     {/* Main Content Area */}
                     <Box sx={{ flex: 1, height: '100%' }}>
-                        <Paper className="calendar-container" sx={{ height: '100%', borderRadius: '32px', border: '1px solid #e2e8f0', p: 1 }}>
+                        <Paper className="calendar-container" sx={{ height: '100%', borderRadius: '32px', border: '1px solid', borderColor: 'divider', p: 1, bgcolor: 'var(--calendar-bg)' }}>
                             <FullCalendar
                                 ref={calendarRef}
                                 plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
@@ -326,7 +339,7 @@ const CompanyCalendar = () => {
                     <DialogActions sx={{ p: 3 }}>
                         <Button
                             onClick={() => setOpenDialog(false)}
-                            sx={{ color: '#64748b', fontWeight: 600 }}
+                            sx={{ color: 'text.secondary', fontWeight: 600 }}
                         >
                             Discard
                         </Button>
