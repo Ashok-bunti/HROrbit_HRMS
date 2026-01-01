@@ -29,6 +29,7 @@ import LeavePolicies from '../features/policies/pages/LeavePolicies';
 import EmployeeDashboard from '../features/dashboard/pages/EmployeeDashboard';
 import EmployeeEngagement from '../features/engagement/pages/EmployeeEngagement';
 import EmployeeProfile from '../features/employees/pages/EmployeeProfile';
+import CompanyCalendar from '../features/calendar/pages/CompanyCalendar';
 
 
 const AppRoutes = () => {
@@ -145,6 +146,8 @@ const AppRoutes = () => {
                         </PrivateRoute>
                     }
                 />
+
+                <Route path="calendar" element={<CompanyCalendar />} />
 
                 <Route path="settings/security" element={<MFASetup />} />
 

@@ -1,0 +1,210 @@
+/* Modern & Premium Company Calendar Styles */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+:root {
+    --calendar-primary: #3b82f6;
+    --calendar-holiday: #ef4444;
+    --calendar-leave: #8b5cf6;
+    --calendar-meeting: #10b981;
+    --calendar-bg: #ffffff;
+    --calendar-sidebar-bg: #f8fafc;
+    --calendar-border: #e2e8f0;
+}
+
+.fc {
+    font-family: 'Outfit', sans-serif !important;
+    --fc-button-bg-color: transparent;
+    --fc-button-border-color: #e2e8f0;
+    --fc-button-text-color: #475569;
+    --fc-button-hover-bg-color: #f1f5f9;
+    --fc-button-hover-border-color: #cbd5e1;
+    --fc-button-active-bg-color: #e2e8f0;
+    --fc-button-active-border-color: #94a3b8;
+    --fc-event-bg-color: var(--calendar-primary);
+    --fc-event-border-color: var(--calendar-primary);
+    --fc-today-bg-color: #eff6ff;
+    --fc-border-color: #f1f5f9;
+}
+
+/* Calendar Container */
+.calendar-container {
+    background: white;
+    border-radius: 24px;
+    overflow: hidden;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+/* Toolbar Override */
+.fc .fc-toolbar {
+    padding: 24px !important;
+    margin-bottom: 0 !important;
+}
+
+.fc .fc-toolbar-title {
+    font-size: 1.5rem !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    letter-spacing: -0.02em;
+}
+
+/* Header Cells */
+.fc .fc-col-header-cell {
+    background: #f8fafc;
+    padding: 12px 0 !important;
+    border: none !important;
+}
+
+.fc .fc-col-header-cell-cushion {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Day Cells */
+.fc .fc-daygrid-day {
+    transition: background-color 0.2s ease;
+}
+
+.fc .fc-daygrid-day:hover {
+    background-color: #f8fafc;
+}
+
+.fc .fc-daygrid-day-number {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #475569;
+    padding: 12px !important;
+}
+
+.fc .fc-day-today {
+    background-color: transparent !important;
+}
+
+.fc .fc-day-today .fc-daygrid-day-number {
+    background-color: var(--calendar-primary) !important;
+    color: white !important;
+    border-radius: 50% !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 4px auto !important;
+    padding: 0 !important;
+    font-weight: 700 !important;
+    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
+}
+
+.fc .fc-day-today .fc-daygrid-day-number::after {
+    display: none;
+}
+
+/* Event Styling - Modern Pills */
+.fc-v-event,
+.fc-h-event {
+    background-color: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+}
+
+.calendar-event {
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 2px 4px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+}
+
+.calendar-event:hover {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+}
+
+.event-holiday {
+    background-color: #fee2e2 !important;
+    color: #991b1b !important;
+}
+
+.event-leave {
+    background-color: #ede9fe !important;
+    color: #5b21b6 !important;
+}
+
+.event-meeting {
+    background-color: #d1fae5 !important;
+    color: #065f46 !important;
+}
+
+.event-general {
+    background-color: #e0f2fe !important;
+    color: #075985 !important;
+}
+
+/* Sidebar Styling */
+.calendar-sidebar {
+    border-radius: 24px;
+    background: var(--calendar-sidebar-bg);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.mini-datepicker {
+    background: white;
+    border-radius: 16px;
+    padding: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+/* Custom Scrollbar for Calendar Area */
+.fc-scroller::-webkit-scrollbar {
+    width: 6px;
+}
+
+.fc-scroller::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+.fc-scroller::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+}
+
+/* View Switcher Buttons */
+.fc .fc-button-group {
+    background: #f1f5f9;
+    padding: 4px;
+    border-radius: 12px;
+    border: none;
+}
+
+.fc .fc-button-primary {
+    border: none !important;
+    background: transparent !important;
+    color: #64748b !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    padding: 8px 16px !important;
+}
+
+.fc .fc-button-primary.fc-button-active {
+    background: white !important;
+    color: var(--calendar-primary) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
+}
+
+.fc .fc-button-primary:focus {
+    box-shadow: none !important;
+}

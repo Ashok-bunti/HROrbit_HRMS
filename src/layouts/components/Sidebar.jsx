@@ -29,6 +29,7 @@ import FingerprintIcon from '@mui/icons-material/Fingerprint';
 import SecurityIcon from '@mui/icons-material/Security';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo_image from '../../../public/logo.png';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -76,10 +77,12 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, tog
     }
 
 
-    // Leaves: Manager vs Employee
     if (can('leaves', 'read')) { // Can view all leaves
         menuItems.push({ text: 'Leaves Management', icon: <EventNoteIcon />, path: '/leaves' });
     }
+
+    // Available to all users
+    menuItems.push({ text: 'Company Calendar', icon: <CalendarMonthIcon />, path: '/calendar' });
 
 
     /*
