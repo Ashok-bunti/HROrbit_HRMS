@@ -419,12 +419,59 @@ const Leaves = () => {
                             />
                         </Box>
                         <Box sx={{
-                            height: 650,
+                            height: 565,
                             width: '100%',
                             '& .MuiDataGrid-root': {
                                 border: 'none',
-                                '& .MuiDataGrid-cell:focus': { outline: 'none' },
-                                '& .MuiDataGrid-columnHeader:focus': { outline: 'none' }
+                                '& .MuiDataGrid-main': {
+                                    borderRadius: 0
+                                },
+                                '& .MuiDataGrid-cell': {
+                                    borderBottom: '1px solid',
+                                    borderColor: 'divider',
+                                    fontSize: '0.875rem',
+                                    '&:focus': {
+                                        outline: 'none'
+                                    },
+                                    '&:focus-within': {
+                                        outline: 'none'
+                                    }
+                                },
+                                '& .MuiDataGrid-columnHeader': {
+                                    backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
+                                    color: 'text.secondary',
+                                    fontWeight: 700,
+                                    fontSize: '0.75rem',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '1px',
+                                    '&:focus': {
+                                        outline: 'none'
+                                    },
+                                    '&:focus-within': {
+                                        outline: 'none'
+                                    }
+                                },
+                                '& .MuiDataGrid-row:hover': {
+                                    backgroundColor: (theme) => theme.palette.action.hover,
+                                },
+                                '& .MuiDataGrid-columnSeparator': {
+                                    display: 'none'
+                                },
+                                // Custom Scrollbar
+                                '& ::-webkit-scrollbar': {
+                                    width: 8,
+                                    height: 8,
+                                },
+                                '& ::-webkit-scrollbar-track': {
+                                    backgroundColor: 'transparent',
+                                },
+                                '& ::-webkit-scrollbar-thumb': {
+                                    backgroundColor: (theme) => theme.palette.divider,
+                                    borderRadius: 4,
+                                    '&:hover': {
+                                        backgroundColor: (theme) => theme.palette.text.disabled,
+                                    },
+                                },
                             }
                         }}>
                             <DataGrid

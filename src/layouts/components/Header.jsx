@@ -53,14 +53,14 @@ const Header = ({ onMenuClick, drawerWidth }) => {
             sx={{
                 width: { sm: `calc(100% - ${drawerWidth}px)` },
                 ml: { sm: `${drawerWidth}px` },
-                bgcolor: 'background.default', // Removed to let theme control background
+                bgcolor: 'background.default',
                 color: 'text.primary',
                 boxShadow: 'none',
                 borderBottom: 'none'
             }}
         >
-            <Toolbar sx={{ justifyContent: 'space-between' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Toolbar disableGutters sx={{ justifyContent: 'space-between', minHeight: 64 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', height: 64, px: 3 }}>
                     <IconButton
                         color="inherit"
                         edge="start"
@@ -82,7 +82,15 @@ const Header = ({ onMenuClick, drawerWidth }) => {
                     />
                 </Box>
 
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+                <Box sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: { xs: 1, sm: 2 },
+                    bgcolor: 'background.paper',
+                    px: 3,
+                    height: 64,
+                    borderRadius: '50px 0 0 50px',
+                }}>
                     {/* Theme Customizer Icon */}
 
 
@@ -92,7 +100,7 @@ const Header = ({ onMenuClick, drawerWidth }) => {
                         sx={{
                             display: { xs: 'none', md: 'flex' },
                             alignItems: 'center',
-                            bgcolor: 'background.paper',
+                            bgcolor: 'background.default',
                             borderRadius: 50,
                             p: 0.5,
                             cursor: 'pointer',
@@ -141,7 +149,7 @@ const Header = ({ onMenuClick, drawerWidth }) => {
                         <IconButton
                             onClick={(e) => setThemeAnchor(e.currentTarget)}
                             sx={{
-                                bgcolor: 'background.paper',
+                                bgcolor: 'background.default',
                                 '&:hover': { bgcolor: alpha(primaryColor, 0.1) },
                                 transition: 'all 0.2s'
                             }}
@@ -152,7 +160,7 @@ const Header = ({ onMenuClick, drawerWidth }) => {
                     <IconButton
                         onClick={() => setNotificationDrawerOpen(true)}
                         sx={{
-                            bgcolor: 'background.paper',
+                            bgcolor: 'background.default',
                             '&:hover': { bgcolor: '#e0e0e0' },
                             display: { xs: 'flex', sm: 'flex' }
                         }}
@@ -163,7 +171,7 @@ const Header = ({ onMenuClick, drawerWidth }) => {
 
 
                     <IconButton sx={{
-                        bgcolor: 'background.paper',
+                        bgcolor: 'background.default',
                         '&:hover': { bgcolor: '#e0e0e0' },
                         display: { xs: 'none', md: 'flex' }
                     }}>
@@ -176,7 +184,7 @@ const Header = ({ onMenuClick, drawerWidth }) => {
                             display: 'flex',
                             alignItems: 'center',
                             gap: 1.5,
-                            bgcolor: 'background.paper',
+                            bgcolor: 'background.default',
                             borderRadius: 50,
                             p: 0.5,
                             pl: 2,

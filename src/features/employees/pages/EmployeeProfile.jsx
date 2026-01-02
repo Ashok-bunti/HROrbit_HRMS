@@ -57,6 +57,7 @@ import MFASetup from '../../auth/pages/MFASetup';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
 import useSnackbar from '../../../hooks/useSnackbar';
 import FileDropZone from '../../../components/common/FileDropZone';
+import PageHeader from '../../../components/common/PageHeader';
 
 const maskValue = (value, visibleLast = 4) => {
     if (!value) return '';
@@ -364,45 +365,41 @@ const EmployeeProfile = () => {
 
     return (
         <Box sx={{ width: '100%', px: { xs: 0.5, sm: 1 }, pb: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', mb: 2, px: 1 }}>
-                <Box>
-                    <Typography variant="h5" fontWeight={800} color="text.primary" sx={{ mb: 0.5 }}>
-                        Profile Control Center
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        Comprehensive view of your professional standing
-                    </Typography>
-                </Box>
-                {employee.profile_completed ? (
-                    <Chip
-                        icon={<CheckCircleIcon sx={{ fontSize: '1.2rem !important' }} />}
-                        label="Profile Verified"
-                        sx={{
-                            height: 32,
-                            fontWeight: 600,
-                            bgcolor: 'success.lighter',
-                            color: 'success.dark',
-                            border: '1px solid',
-                            borderColor: 'success.light'
-                        }}
-                    />
-                ) : (
-                    <Tooltip title="Complete all required fields to verify profile">
+            <PageHeader
+                title="Profile Control Center"
+                subtitle="Comprehensive view of your professional standing"
+                action={
+                    employee.profile_completed ? (
                         <Chip
-                            icon={<ErrorOutlineIcon sx={{ fontSize: '1.2rem !important' }} />}
-                            label="Verification Pending"
+                            icon={<CheckCircleIcon sx={{ fontSize: '1.2rem !important' }} />}
+                            label="Profile Verified"
                             sx={{
                                 height: 32,
                                 fontWeight: 600,
-                                bgcolor: 'warning.lighter',
-                                color: 'warning.dark',
+                                bgcolor: 'success.lighter',
+                                color: 'success.dark',
                                 border: '1px solid',
-                                borderColor: 'warning.light'
+                                borderColor: 'success.light'
                             }}
                         />
-                    </Tooltip>
-                )}
-            </Box>
+                    ) : (
+                        <Tooltip title="Complete all required fields to verify profile">
+                            <Chip
+                                icon={<ErrorOutlineIcon sx={{ fontSize: '1.2rem !important' }} />}
+                                label="Verification Pending"
+                                sx={{
+                                    height: 32,
+                                    fontWeight: 600,
+                                    bgcolor: 'warning.lighter',
+                                    color: 'warning.dark',
+                                    border: '1px solid',
+                                    borderColor: 'warning.light'
+                                }}
+                            />
+                        </Tooltip>
+                    )
+                }
+            />
 
 
             <Box

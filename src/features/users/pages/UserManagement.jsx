@@ -473,12 +473,12 @@ const UserManagement = () => {
                     />
                 </Box>
                 <Box sx={{
-                    height: 650,
+                    height: 565,
                     width: '100%',
                     '& .MuiDataGrid-root': {
                         border: 'none',
                         '& .MuiDataGrid-main': {
-                            borderRadius: 2
+                            borderRadius: 0
                         },
                         '& .MuiDataGrid-cell': {
                             borderBottom: '1px solid',
