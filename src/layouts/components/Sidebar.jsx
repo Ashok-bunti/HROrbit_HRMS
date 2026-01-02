@@ -30,6 +30,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import FactCheckIcon from '@mui/icons-material/FactCheck';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo_image from '../../../public/logo.png';
 import { usePermissions } from '../../hooks/usePermissions';
@@ -62,17 +63,18 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, tog
         menuItems.push({ text: 'Role Management', icon: <SecurityIcon />, path: '/admin/roles' });
     }
 
-    if (can('employees', 'read')) {
+    if (can('employees', 'read') && !isEmployee) {
         menuItems.push({ text: 'Employee Management', icon: <PeopleIcon />, path: '/employees' });
     }
 
-    if (can('departments', 'read')) {
+    if (can('departments', 'read') && !isEmployee) {
         menuItems.push({ text: 'Department', icon: <BusinessIcon />, path: '/departments' });
     }
 
 
 
-    if (can('leave_policies', 'read')) {
+
+    if (can('leave_policies', 'read') && !isEmployee) {
         menuItems.push({ text: 'Leave Policies', icon: <FactCheckIcon />, path: '/admin/policies' });
     }
 
@@ -83,6 +85,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, tog
 
     // Available to all users
     menuItems.push({ text: 'Company Calendar', icon: <CalendarMonthIcon />, path: '/calendar' });
+    menuItems.push({ text: 'Holiday Calendar', icon: <EventAvailableIcon />, path: '/holidays' });
 
 
     /*

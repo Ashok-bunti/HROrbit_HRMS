@@ -133,7 +133,6 @@ const CompanyCalendar = () => {
     return (
         <LocalizationProvider dateAdapter={AdapterDateFns}>
             <Box sx={{
-                p: { xs: 1, md: 3 },
                 minHeight: '100vh',
                 bgcolor: 'background.default',
                 '--calendar-bg': theme.palette.background.paper,

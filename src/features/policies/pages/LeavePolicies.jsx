@@ -92,7 +92,7 @@ const PolicyCard = ({ policy, onEdit, onDelete, canEdit, canDelete }) => {
                 alignItems: 'center',
                 borderBottom: '1px solid',
                 borderColor: 'divider',
-                bgcolor: 'background.default'
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.05)
             }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                     <Box
@@ -151,7 +151,7 @@ const PolicyCard = ({ policy, onEdit, onDelete, canEdit, canDelete }) => {
                                 sx={{
                                     color: 'text.secondary',
                                     border: '1px solid',
-                                    borderColor: 'text.secondary',
+                                    borderColor: 'divider',
                                     '&:hover': { color: 'primary.main', borderColor: 'primary.main', bgcolor: (theme) => alpha(theme.palette.primary.main, 0.05) }
                                 }}
                             >
@@ -159,6 +159,7 @@ const PolicyCard = ({ policy, onEdit, onDelete, canEdit, canDelete }) => {
                             </IconButton>
                         </Tooltip>
                     )}
+                    <Box sx={{ width: '1px', height: 20, bgcolor: 'divider', my: 'auto' }} />
                     {canDelete && (
                         <Tooltip title="Delete">
                             <IconButton
