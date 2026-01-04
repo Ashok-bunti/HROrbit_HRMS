@@ -12,6 +12,7 @@ import Employees from '../features/employees/pages/Employees';
 import Departments from '../features/departments/pages/Departments';
 import Leaves from '../features/leaves/pages/Leaves';
 import Attendance from '../features/attendance/pages/Attendance';
+import Teams from '../features/teams/pages/Teams';
 import Unauthorized from '../features/auth/pages/Unauthorized';
 import ForcePasswordChange from '../features/auth/pages/ForcePasswordChange';
 
@@ -128,6 +129,14 @@ const AppRoutes = () => {
                     element={
                         <PrivateRoute requiredPermission="departments:read">
                             <Departments />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="teams"
+                    element={
+                        <PrivateRoute requiredPermission="teams:read">
+                            <Teams />
                         </PrivateRoute>
                     }
                 />

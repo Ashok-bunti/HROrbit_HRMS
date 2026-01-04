@@ -92,5 +92,9 @@ export const PERMISSIONS = {
 
     // New Roles
     VIEW_ROLES: 'roles:read',
-    MANAGE_ROLES: 'roles:manage'
+    MANAGE_ROLES: 'roles:manage',
+
+    // Teams
+    VIEW_TEAMS: 'teams:read',
+    MANAGE_TEAMS: 'teams:manage'
 };

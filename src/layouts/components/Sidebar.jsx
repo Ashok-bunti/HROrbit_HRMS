@@ -71,6 +71,10 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, tog
         menuItems.push({ text: 'Department', icon: <BusinessIcon />, path: '/departments' });
     }
 
+    if (can('teams', 'read') && !isEmployee) {
+        menuItems.push({ text: 'Teams', icon: <PeopleIcon />, path: '/teams' });
+    }
+
 
 
 

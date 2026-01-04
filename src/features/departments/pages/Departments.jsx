@@ -14,7 +14,16 @@ import {
     DialogActions,
     Grid,
     CircularProgress,
-    Tooltip
+    Tooltip,
+    FormControlLabel,
+    Switch,
+    MenuItem,
+    Select,
+    FormControl,
+    InputLabel,
+    Avatar,
+    Divider,
+    Fade
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import {
@@ -24,6 +33,7 @@ import {
     Search as SearchIcon,
     PersonRemove as RemoveIcon
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import {
     useGetDepartmentsQuery,
     useCreateDepartmentMutation,
@@ -45,7 +55,9 @@ import useSnackbar from '../../../hooks/useSnackbar';
 
 const Departments = () => {
     const theme = useTheme();
+    const navigate = useNavigate();
     const { can, isAdmin } = usePermissions();
+    const [statusFilter, setStatusFilter] = useState('all');
     const [paginationModel, setPaginationModel] = useState({
         page: 0,
         pageSize: 10,
@@ -71,17 +83,19 @@ const Departments = () => {
         name: '',
         description: '',
         head_id: null,
+        is_active: true,
         employee_ids: [],
     });
 
     const { data, isLoading, error, refetch } = useGetDepartmentsQuery({
         search: searchTerm,
+        is_active: statusFilter !== 'all' ? statusFilter : undefined,
         page: paginationModel.page + 1,
         limit: paginationModel.pageSize,
     });
     const { data: employeesData, isLoading: isLoadingEmployees } = useGetEmployeesQuery({
-        page: paginationModel.page + 1, // Dynamic based on pagination
-        limit: paginationModel.pageSize // Dynamic based on pagination
+        limit: 1000,
+        is_active: 'true'
     });
     const employees = employeesData?.employees || [];
 
@@ -130,6 +144,7 @@ const Departments = () => {
                 name: department.name,
                 description: department.description || '',
                 head_id: department.head_id || null,
+                is_active: department.is_active !== undefined ? department.is_active : true,
                 employee_ids: currentEmployeeIds,
             });
         } else {
@@ -138,6 +153,7 @@ const Departments = () => {
                 name: '',
                 description: '',
                 head_id: null,
+                is_active: true,
                 employee_ids: [],
             });
         }
@@ -163,7 +179,7 @@ const Departments = () => {
                 setSelectedDepartment(null);
             } catch (err) {
                 console.error("Failed to delete department", err);
-                showSnackbar('Failed to delete department', 'error');
+                showSnackbar(err.data?.error || 'Failed to delete department', 'error');
             }
         }
     };
@@ -181,7 +197,7 @@ const Departments = () => {
             handleCloseDialog();
         } catch (err) {
             console.error("Failed to save department", err);
-            showSnackbar('Failed to save department', 'error');
+            showSnackbar(err.data?.error || 'Failed to save department', 'error');
         }
     };
 
@@ -333,7 +349,7 @@ const Departments = () => {
             />
 
             <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 2 }}>
-                <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
                     <TextField
                         placeholder="Search departments..."
                         size="small"
@@ -341,6 +357,20 @@ const Departments = () => {
                         onChange={(e) => setSearchTerm(e.target.value)}
                         sx={{ minWidth: 300 }}
                     />
+                    <Box sx={{ display: 'flex', gap: 2 }}>
+                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                            <InputLabel>Status</InputLabel>
+                            <Select
+                                value={statusFilter}
+                                label="Status"
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                            >
+                                <MenuItem value="all">All Status</MenuItem>
+                                <MenuItem value="true">Active</MenuItem>
+                                <MenuItem value="false">Inactive</MenuItem>
+                            </Select>
+                        </FormControl>
+                    </Box>
                 </Box>
                 <Box sx={{
                     height: 565,
@@ -430,7 +460,7 @@ const Departments = () => {
 
                             <Autocomplete
                                 options={employees}
-                                getOptionLabel={(option) => option.first_name || ''}
+                                getOptionLabel={(option) => option.full_name || `${option.first_name} ${option.last_name}`}
                                 value={getSelectedEmployee()}
                                 onChange={(event, newValue) => {
                                     setFormData({
@@ -447,7 +477,7 @@ const Departments = () => {
                                     />
                                 )}
                                 noOptionsText="No employees found"
-                                isOptionEqualToValue={(option, value) => option.id === value.id}
+                                isOptionEqualToValue={(option, value) => (option.user_id || option.id) === (value.user_id || value.id)}
                             />
 
                             <TextField
@@ -457,6 +487,26 @@ const Departments = () => {
                                 rows={3}
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            />
+
+                            <Divider />
+
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={formData.is_active}
+                                        onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                                        color="primary"
+                                    />
+                                }
+                                label={
+                                    <Box>
+                                        <Typography variant="subtitle2">Department Status</Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            {formData.is_active ? 'Department is active and visible' : 'Department is inactive'}
+                                        </Typography>
+                                    </Box>
+                                }
                             />
                         </Box>
                     </DialogContent>
