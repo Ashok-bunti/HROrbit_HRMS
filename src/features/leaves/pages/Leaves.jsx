@@ -21,12 +21,14 @@ import {
     Divider,
     RadioGroup,
     Radio,
-    Tooltip
+    Tooltip,
+    useMediaQuery,
+    InputAdornment
 } from '@mui/material';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
 import useSnackbar from '../../../hooks/useSnackbar';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
-import { Check, Close, Delete, Info, FactCheck, DateRange, VerifiedUser, PostAdd, History } from '@mui/icons-material';
+import { Check, Close, Delete, Info, FactCheck, DateRange, VerifiedUser, PostAdd, History, Search } from '@mui/icons-material';
 import { useTheme, alpha } from '@mui/material/styles';
 import { DatePicker } from '@mui/x-date-pickers';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -48,6 +50,7 @@ const Leaves = () => {
     const theme = useTheme();
     const { can, isAdmin: isUserAdmin, isHR } = usePermissions();
     const { user } = useAuth();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [searchTerm, setSearchTerm] = useState('');
     const { data, isLoading } = useGetAllLeavesQuery({});
     const [createLeave] = useCreateLeaveMutation();
@@ -356,139 +359,238 @@ const Leaves = () => {
                 title="Leave Management"
                 subtitle="View and manage employee leave requests."
                 action={
-                    <Box
-                        sx={{
-                            display: 'inline-flex',
-                            p: 0.6,
-                            bgcolor: theme.palette.mode === 'dark' ? alpha('#fff', 0.05) : '#f4f6f8',
-                            borderRadius: '14px',
-                            border: '1px solid',
-                            borderColor: theme.palette.mode === 'dark' ? alpha('#fff', 0.1) : 'divider',
-                            gap: 0.5
-                        }}
-                    >
-                        {[
-                            { label: 'History', icon: <History />, value: 0 },
-                            { label: 'Apply', icon: <PostAdd />, value: 1 },
-                            { label: 'Policies', icon: <FactCheck />, value: 2 }
-                        ].map((item) => (
-                            <Button
-                                key={item.value}
-                                onClick={() => setActiveTab(item.value)}
-                                startIcon={React.cloneElement(item.icon, { sx: { fontSize: 18 } })}
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column_reverse', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 2 }}>
+                        {activeTab === 0 && (
+                            <TextField
+                                placeholder="Search leaves..."
                                 size="small"
-                                sx={{
-                                    borderRadius: '10px',
-                                    px: 2.5,
-                                    py: 0.8,
-                                    textTransform: 'none',
-                                    fontWeight: activeTab === item.value ? 700 : 600,
-                                    fontSize: '0.85rem',
-                                    color: activeTab === item.value ? 'primary.main' : 'text.secondary',
-                                    bgcolor: activeTab === item.value ? 'background.paper' : 'transparent',
-                                    boxShadow: activeTab === item.value ? '0px 4px 10px rgba(0,0,0,0.06)' : 'none',
-                                    transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                                    '&:hover': {
-                                        bgcolor: activeTab === item.value ? 'background.paper' : alpha(theme.palette.primary.main, 0.05),
-                                        transform: activeTab === item.value ? 'none' : 'translateY(-1px)'
-                                    },
-                                    '& .MuiButton-startIcon': {
-                                        mr: 1,
-                                        color: activeTab === item.value ? 'primary.main' : 'text.disabled',
-                                        transition: 'color 0.25s'
-                                    }
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <Search fontSize="small" sx={{ color: 'text.secondary' }} />
+                                        </InputAdornment>
+                                    ),
+                                    sx: { bgcolor: 'background.paper', borderRadius: 2 }
                                 }}
-                            >
-                                {item.label}
-                            </Button>
-                        ))}
+                                sx={{ width: { xs: '100%', sm: 250 } }}
+                            />
+                        )}
+                        <Box
+                            sx={{
+                                display: 'inline-flex',
+                                p: 0.6,
+                                bgcolor: theme.palette.mode === 'dark' ? alpha('#fff', 0.05) : '#f4f6f8',
+                                borderRadius: '14px',
+                                border: '1px solid',
+                                borderColor: theme.palette.mode === 'dark' ? alpha('#fff', 0.1) : 'divider',
+                                gap: 0.5
+                            }}
+                        >
+                            {[
+                                { label: 'History', icon: <History />, value: 0 },
+                                { label: 'Apply', icon: <PostAdd />, value: 1 },
+                                { label: 'Policies', icon: <FactCheck />, value: 2 }
+                            ].map((item) => (
+                                <Button
+                                    key={item.value}
+                                    onClick={() => setActiveTab(item.value)}
+                                    startIcon={React.cloneElement(item.icon, { sx: { fontSize: 18 } })}
+                                    size="small"
+                                    sx={{
+                                        borderRadius: '10px',
+                                        px: 2.5,
+                                        py: 0.8,
+                                        textTransform: 'none',
+                                        fontWeight: activeTab === item.value ? 700 : 600,
+                                        fontSize: '0.85rem',
+                                        color: activeTab === item.value ? 'primary.main' : 'text.secondary',
+                                        bgcolor: activeTab === item.value ? 'background.paper' : 'transparent',
+                                        boxShadow: activeTab === item.value ? '0px 4px 10px rgba(0,0,0,0.06)' : 'none',
+                                        transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        '&:hover': {
+                                            bgcolor: activeTab === item.value ? 'background.paper' : alpha(theme.palette.primary.main, 0.05),
+                                            transform: activeTab === item.value ? 'none' : 'translateY(-1px)'
+                                        },
+                                        '& .MuiButton-startIcon': {
+                                            mr: 1,
+                                            color: activeTab === item.value ? 'primary.main' : 'text.disabled',
+                                            transition: 'color 0.25s'
+                                        }
+                                    }}
+                                >
+                                    {isMobile ? null : item.label}
+                                    {isMobile && item.icon}
+                                </Button>
+                            ))}
+                        </Box>
                     </Box>
                 }
             />
 
             <Box sx={{ mt: 3 }}>
                 {activeTab === 0 ? (
-                    <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 2 }}>
-                        <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                            <TextField
-                                placeholder="Search leaves..."
-                                size="small"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                sx={{ minWidth: 300 }}
-                            />
-                        </Box>
-                        <Box sx={{
-                            height: 565,
-                            width: '100%',
-                            '& .MuiDataGrid-root': {
-                                border: 'none',
-                                '& .MuiDataGrid-main': {
-                                    borderRadius: 0
-                                },
-                                '& .MuiDataGrid-cell': {
-                                    borderBottom: '1px solid',
-                                    borderColor: 'divider',
-                                    fontSize: '0.875rem',
-                                    '&:focus': {
-                                        outline: 'none'
-                                    },
-                                    '&:focus-within': {
-                                        outline: 'none'
+                    <>
+                        {isMobile ? (
+                            // MOBILE: Card List View
+                            <Stack spacing={2}>
+                                {filteredLeaves.map((leave) => {
+                                    const isPending = leave.status === 'Pending';
+                                    const isOwnLeave = leave.user_id === user?.id;
+                                    let statusColor = 'default';
+                                    if (leave.status === 'Approved') statusColor = 'success';
+                                    if (leave.status === 'Rejected') statusColor = 'error';
+                                    if (leave.status === 'Pending') statusColor = 'warning';
+
+                                    return (
+                                        <Card key={leave.id} sx={{ p: 2, borderRadius: 2, boxShadow: theme.shadows[1] }}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                                <Typography variant="subtitle1" fontWeight={700}>
+                                                    {leave.employee_name || 'Unknown'}
+                                                </Typography>
+                                                <Chip
+                                                    label={leave.status}
+                                                    color={statusColor}
+                                                    size="small"
+                                                    variant="outlined"
+                                                    sx={{ fontWeight: 600 }}
+                                                />
+                                            </Box>
+
+                                            <Box sx={{ display: 'flex', gap: 1, mb: 1.5, flexWrap: 'wrap' }}>
+                                                <Chip label={`${leave.leave_type} Leave`} size="small" sx={{ bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', fontWeight: 600 }} />
+                                                <Chip label={`${leave.total_days} Days`} size="small" variant="outlined" />
+                                            </Box>
+
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, color: 'text.secondary', mb: 2, fontSize: '0.875rem' }}>
+                                                <DateRange fontSize="small" />
+                                                <Typography variant="body2">
+                                                    {leave.start_date ? format(new Date(leave.start_date), 'dd MMM') : '-'} — {leave.end_date ? format(new Date(leave.end_date), 'dd MMM, yyyy') : '-'}
+                                                </Typography>
+                                            </Box>
+
+                                            {/* Mobile Actions */}
+                                            <Divider sx={{ mb: 2 }} />
+                                            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                                                {can('leaves', 'update') && isPending && (
+                                                    <>
+                                                        <Button
+                                                            variant="outlined"
+                                                            color="success"
+                                                            size="small"
+                                                            startIcon={<Check />}
+                                                            onClick={() => handleApprove(leave.id)}
+                                                        >
+                                                            Approve
+                                                        </Button>
+                                                        <Button
+                                                            variant="outlined"
+                                                            color="error"
+                                                            size="small"
+                                                            startIcon={<Close />}
+                                                            onClick={() => handleRejectClick(leave.id)}
+                                                        >
+                                                            Reject
+                                                        </Button>
+                                                    </>
+                                                )}
+                                                {can('leaves', 'delete') && (isPending || isAdmin) && (isOwnLeave || isAdmin) && (
+                                                    <IconButton
+                                                        color="error"
+                                                        size="small"
+                                                        onClick={() => handleDeleteClick(leave.id)}
+                                                        sx={{ border: '1px solid', borderColor: alpha(theme.palette.error.main, 0.5), borderRadius: 1 }}
+                                                    >
+                                                        <Delete fontSize="small" />
+                                                    </IconButton>
+                                                )}
+                                            </Box>
+                                        </Card>
+                                    );
+                                })}
+                                {filteredLeaves.length === 0 && (
+                                    <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+                                        <Typography>No leave requests found.</Typography>
+                                    </Box>
+                                )}
+                            </Stack>
+                        ) : (
+                            // DESKTOP: DataGrid
+                            <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 2 }}>
+                                <Box sx={{
+                                    height: 565,
+                                    width: '100%',
+                                    '& .MuiDataGrid-root': {
+                                        border: 'none',
+                                        '& .MuiDataGrid-main': {
+                                            borderRadius: 0
+                                        },
+                                        '& .MuiDataGrid-cell': {
+                                            borderBottom: '1px solid',
+                                            borderColor: 'divider',
+                                            fontSize: '0.875rem',
+                                            '&:focus': {
+                                                outline: 'none'
+                                            },
+                                            '&:focus-within': {
+                                                outline: 'none'
+                                            }
+                                        },
+                                        '& .MuiDataGrid-columnHeader': {
+                                            backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
+                                            color: 'text.secondary',
+                                            fontWeight: 700,
+                                            fontSize: '0.75rem',
+                                            textTransform: 'uppercase',
+                                            letterSpacing: '1px',
+                                            '&:focus': {
+                                                outline: 'none'
+                                            },
+                                            '&:focus-within': {
+                                                outline: 'none'
+                                            }
+                                        },
+                                        '& .MuiDataGrid-row:hover': {
+                                            backgroundColor: (theme) => theme.palette.action.hover,
+                                        },
+                                        '& .MuiDataGrid-columnSeparator': {
+                                            display: 'none'
+                                        },
+                                        // Custom Scrollbar
+                                        '& ::-webkit-scrollbar': {
+                                            width: 8,
+                                            height: 8,
+                                        },
+                                        '& ::-webkit-scrollbar-track': {
+                                            backgroundColor: 'transparent',
+                                        },
+                                        '& ::-webkit-scrollbar-thumb': {
+                                            backgroundColor: (theme) => theme.palette.divider,
+                                            borderRadius: 4,
+                                            '&:hover': {
+                                                backgroundColor: (theme) => theme.palette.text.disabled,
+                                            },
+                                        },
                                     }
-                                },
-                                '& .MuiDataGrid-columnHeader': {
-                                    backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
-                                    color: 'text.secondary',
-                                    fontWeight: 700,
-                                    fontSize: '0.75rem',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '1px',
-                                    '&:focus': {
-                                        outline: 'none'
-                                    },
-                                    '&:focus-within': {
-                                        outline: 'none'
-                                    }
-                                },
-                                '& .MuiDataGrid-row:hover': {
-                                    backgroundColor: (theme) => theme.palette.action.hover,
-                                },
-                                '& .MuiDataGrid-columnSeparator': {
-                                    display: 'none'
-                                },
-                                // Custom Scrollbar
-                                '& ::-webkit-scrollbar': {
-                                    width: 8,
-                                    height: 8,
-                                },
-                                '& ::-webkit-scrollbar-track': {
-                                    backgroundColor: 'transparent',
-                                },
-                                '& ::-webkit-scrollbar-thumb': {
-                                    backgroundColor: (theme) => theme.palette.divider,
-                                    borderRadius: 4,
-                                    '&:hover': {
-                                        backgroundColor: (theme) => theme.palette.text.disabled,
-                                    },
-                                },
-                            }
-                        }}>
-                            <DataGrid
-                                rows={filteredLeaves}
-                                columns={columns}
-                                loading={isLoading}
-                                pageSizeOptions={[10, 25, 50]}
-                                initialState={{
-                                    pagination: { paginationModel: { page: 0, pageSize: 10 } },
-                                }}
-                                disableRowSelectionOnClick
-                                density="compact"
-                                rowHeight={52}
-                                columnHeaderHeight={48}
-                            />
-                        </Box>
-                    </Card>
+                                }}>
+                                    <DataGrid
+                                        rows={filteredLeaves}
+                                        columns={columns}
+                                        loading={isLoading}
+                                        pageSizeOptions={[10, 25, 50]}
+                                        initialState={{
+                                            pagination: { paginationModel: { page: 0, pageSize: 10 } },
+                                        }}
+                                        disableRowSelectionOnClick
+                                        density="compact"
+                                        rowHeight={52}
+                                        columnHeaderHeight={48}
+                                    />
+                                </Box>
+                            </Card>
+                        )}
+                    </>
                 ) : activeTab === 1 ? (
                     <Grid container justifyContent="center">
                         <Grid item xs={12} md={8} lg={6}>

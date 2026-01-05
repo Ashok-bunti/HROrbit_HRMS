@@ -67,8 +67,8 @@ const ForgotPassword = () => {
                 {/* LEFT – FORM */}
                 <Box
                     sx={{
-                        width: '50%',
-                        p: 5,
+                        width: { xs: '100%', md: '50%' },
+                        p: { xs: 3, md: 5 },
                         backgroundColor: 'background.paper',
                         display: 'flex',
                         flexDirection: 'column',

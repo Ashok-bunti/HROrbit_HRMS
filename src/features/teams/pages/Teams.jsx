@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import {
     Box,
     Typography,
@@ -27,7 +28,12 @@ import {
     Card,
     Autocomplete,
     InputAdornment,
-    Checkbox
+    Checkbox,
+    Stack,
+    CardContent,
+    Menu,
+    ListItemIcon,
+    ListItemText
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import {
@@ -37,9 +43,10 @@ import {
     Search as SearchIcon,
     People as PeopleIcon,
     Person as PersonIcon,
-    Business as BusinessIcon,
     CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
-    CheckBox as CheckBoxIcon
+    CheckBox as CheckBoxIcon,
+    MoreVert as MoreVertIcon,
+    Visibility as VisibilityIcon
 } from '@mui/icons-material';
 import {
     useGetTeamsQuery,
@@ -60,6 +67,7 @@ import { useSearchParams } from 'react-router-dom';
 
 const Teams = () => {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { can, isAdmin } = usePermissions();
     const { showSnackbar, snackbar, hideSnackbar } = useSnackbar();
     const [searchParams] = useSearchParams();
@@ -213,6 +221,22 @@ const Teams = () => {
         }
     };
 
+
+
+    // Mobile Menu State
+    const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+    const [menuTeam, setMenuTeam] = useState(null);
+
+    const handleMenuClick = (event, team) => {
+        setMenuAnchorEl(event.currentTarget);
+        setMenuTeam(team);
+    };
+
+    const handleMenuClose = () => {
+        setMenuAnchorEl(null);
+        setMenuTeam(null);
+    };
+
     const columns = [
         {
             field: 'name',
@@ -345,37 +369,57 @@ const Teams = () => {
                 title="Teams"
                 subtitle="Manage organizational teams within departments."
                 action={
-                    can('teams', 'create') && (
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleOpenDialog()}
-                            sx={{ borderRadius: 2 }}
-                        >
-                            Add Team
-                        </Button>
-                    )
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 2, width: { xs: '100%', sm: 'auto' } }}>
+                        <TextField
+                            placeholder="Search teams..."
+                            size="small"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                                    </InputAdornment>
+                                ),
+                                sx: { bgcolor: 'background.paper', borderRadius: 2 }
+                            }}
+                            sx={{ width: { xs: '100%', sm: 300 } }}
+                        />
+                        {can('teams', 'create') && (
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={() => handleOpenDialog()}
+                                sx={{ borderRadius: 2, px: 3, whiteSpace: 'nowrap' }}
+                            >
+                                Add Team
+                            </Button>
+                        )}
+                    </Box>
                 }
             />
 
-            <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 2 }}>
-                <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-                    <TextField
-                        placeholder="Search teams..."
-                        size="small"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        sx={{ minWidth: 250 }}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <SearchIcon fontSize="small" />
-                                </InputAdornment>
-                            ),
-                        }}
-                    />
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
+            <Card sx={{
+                overflow: 'hidden',
+                boxShadow: isMobile ? 'none' : theme.shadows[2],
+                borderRadius: isMobile ? 0 : 2,
+                bgcolor: isMobile ? 'transparent' : 'background.paper',
+                border: isMobile ? 'none' : undefined
+            }}>
+                <Box sx={{
+                    p: 2,
+                    borderBottom: isMobile ? 'none' : '1px solid',
+                    borderColor: 'divider',
+                    bgcolor: isMobile ? 'transparent' : 'inherit',
+                    display: 'flex',
+                    flexDirection: isMobile ? 'column' : 'row',
+                    justifyContent: 'flex-end', // Align filters to right
+                    alignItems: isMobile ? 'stretch' : 'center',
+                    gap: 2,
+                    flexWrap: 'wrap'
+                }}>
+                    <Box sx={{ display: 'flex', gap: 2, flexDirection: isMobile ? 'column' : 'row', width: isMobile ? '100%' : 'auto' }}>
+                        <FormControl size="small" sx={{ minWidth: isMobile ? '100%' : 150 }}>
                             <InputLabel>Department</InputLabel>
                             <Select
                                 value={deptFilter}
@@ -388,7 +432,7 @@ const Teams = () => {
                                 ))}
                             </Select>
                         </FormControl>
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
+                        <FormControl size="small" sx={{ minWidth: isMobile ? '100%' : 150 }}>
                             <InputLabel>Status</InputLabel>
                             <Select
                                 value={statusFilter}
@@ -402,40 +446,158 @@ const Teams = () => {
                         </FormControl>
                     </Box>
                 </Box>
-                <Box sx={{ height: 600, width: '100%' }}>
-                    <DataGrid
-                        rows={filteredTeams}
-                        columns={columns}
-                        loading={isLoading}
-                        pageSizeOptions={[10, 25, 50]}
-                        paginationModel={paginationModel}
-                        onPaginationModelChange={setPaginationModel}
-                        disableRowSelectionOnClick
-                        density="compact"
-                        rowHeight={52}
-                        columnHeaderHeight={48}
-                        sx={{
-                            border: 'none',
-                            '& .MuiDataGrid-columnHeader': {
-                                backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
-                                color: 'text.secondary',
-                                fontWeight: 700,
-                                fontSize: '0.75rem',
-                                textTransform: 'uppercase',
-                                letterSpacing: '1px',
-                                '&:focus': { outline: 'none' },
-                                '&:focus-within': { outline: 'none' },
-                            },
-                            '& .MuiDataGrid-cell': {
-                                borderBottom: '1px solid',
-                                borderColor: 'divider',
-                                '&:focus': { outline: 'none' },
-                                '&:focus-within': { outline: 'none' },
-                            },
-                        }}
-                    />
-                </Box>
+
+                {isMobile ? (
+                    // MOBILE: Card List View
+                    <Stack spacing={2} sx={{ px: 0, pb: 4 }}>
+                        {filteredTeams.map((team) => (
+                            <Card key={team.id} sx={{
+                                borderRadius: 3,
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                                border: '1px solid',
+                                borderColor: 'divider'
+                            }}>
+                                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                                    {/* Header */}
+                                    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                                        <Box display="flex" gap={1.5} alignItems="center">
+                                            <Avatar sx={{ bgcolor: 'secondary.main', width: 40, height: 40, fontSize: '1rem', fontWeight: 700 }}>
+                                                <PeopleIcon fontSize="small" />
+                                            </Avatar>
+                                            <Box>
+                                                <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2}>
+                                                    {team.name}
+                                                </Typography>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {team.department_name}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                        <IconButton size="small" onClick={(e) => handleMenuClick(e, team)}>
+                                            <MoreVertIcon />
+                                        </IconButton>
+                                    </Box>
+
+                                    {/* Status Badge */}
+                                    <Box mb={2}>
+                                        <Chip
+                                            label={team.is_active ? 'Active' : 'Inactive'}
+                                            color={team.is_active ? 'success' : 'error'}
+                                            size="small"
+                                            variant="outlined"
+                                            sx={{ fontWeight: 600, height: 24, fontSize: '0.7rem' }}
+                                        />
+                                    </Box>
+
+                                    <Divider sx={{ my: 1.5, borderStyle: 'dashed' }} />
+
+                                    {/* Details */}
+                                    <Box display="grid" gridTemplateColumns="1fr 1fr" gap={2}>
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" display="block">Manager</Typography>
+                                            <Typography variant="body2" fontWeight={500}>{team.manager_name || 'N/A'}</Typography>
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" display="block">Team Lead</Typography>
+                                            <Typography variant="body2" fontWeight={500}>{team.teamlead_name || 'N/A'}</Typography>
+                                        </Box>
+                                        <Box>
+                                            <Typography variant="caption" color="text.secondary" display="block">Members</Typography>
+                                            <Button
+                                                size="small"
+                                                onClick={() => {
+                                                    setViewMembersTeam(team);
+                                                    setMemberListOpen(true);
+                                                }}
+                                                sx={{ minWidth: 0, p: 0, textDecoration: 'underline', height: 'auto', justifyContent: 'flex-start' }}
+                                            >
+                                                {team.employee_count || 0} Members
+                                            </Button>
+                                        </Box>
+                                    </Box>
+                                </CardContent>
+                            </Card>
+                        ))}
+                        {filteredTeams.length === 0 && (
+                            <Box textAlign="center" py={4}>
+                                <Typography color="text.secondary">No teams found</Typography>
+                            </Box>
+                        )}
+                    </Stack>
+                ) : (
+                    <Box sx={{ height: 600, width: '100%' }}>
+                        <DataGrid
+                            rows={filteredTeams}
+                            columns={columns}
+                            loading={isLoading}
+                            pageSizeOptions={[10, 25, 50]}
+                            paginationModel={paginationModel}
+                            onPaginationModelChange={setPaginationModel}
+                            disableRowSelectionOnClick
+                            density="compact"
+                            rowHeight={52}
+                            columnHeaderHeight={48}
+                            sx={{
+                                border: 'none',
+                                '& .MuiDataGrid-columnHeader': {
+                                    backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
+                                    color: 'text.secondary',
+                                    fontWeight: 700,
+                                    fontSize: '0.75rem',
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '1px',
+                                    '&:focus': { outline: 'none' },
+                                    '&:focus-within': { outline: 'none' },
+                                },
+                                '& .MuiDataGrid-cell': {
+                                    borderBottom: '1px solid',
+                                    borderColor: 'divider',
+                                    '&:focus': { outline: 'none' },
+                                    '&:focus-within': { outline: 'none' },
+                                },
+                            }}
+                        />
+                    </Box>
+                )}
             </Card>
+
+            <Menu
+                anchorEl={menuAnchorEl}
+                open={Boolean(menuAnchorEl)}
+                onClose={handleMenuClose}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                sx={{ '& .MuiPaper-root': { borderRadius: 3, boxShadow: theme.shadows[3], minWidth: 150 } }}
+            >
+                <MenuItem onClick={() => {
+                    setViewMembersTeam(menuTeam);
+                    setMemberListOpen(true);
+                    handleMenuClose();
+                }}>
+                    <ListItemIcon><PeopleIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>View Members</ListItemText>
+                </MenuItem>
+
+                {can('teams', 'update') && (
+                    <MenuItem onClick={() => {
+                        handleOpenDialog(menuTeam);
+                        handleMenuClose();
+                    }}>
+                        <ListItemIcon><EditIcon fontSize="small" /></ListItemIcon>
+                        <ListItemText>Edit Team</ListItemText>
+                    </MenuItem>
+                )}
+
+                {can('teams', 'delete') && (
+                    <MenuItem onClick={() => {
+                        handleDeleteClick(menuTeam);
+                        handleMenuClose();
+                    }} sx={{ color: 'error.main' }}>
+                        <ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon>
+                        <ListItemText>Delete Team</ListItemText>
+                    </MenuItem>
+                )}
+            </Menu>
 
             <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
                 <DialogTitle>{selectedTeam ? 'Edit Team' : 'Add Team'}</DialogTitle>

@@ -1,14 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
-import { Box, Toolbar } from '@mui/material';
+import { Box, Toolbar, useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import Sidebar from './Sidebar';
 import Header from './Header';
 
 // Drawer width handled dynamically inside Layout
 
 const Layout = () => {
+    const theme = useTheme();
+    // Tablet/Laptop check (Between 768px and 1200px)
+    const isTabletOrLaptop = useMediaQuery(theme.breakpoints.between('sm', 'lg'));
+    // Desktop check (>= 1200px)
+    const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
+
     const [mobileOpen, setMobileOpen] = useState(false);
-    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+    const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+    // Effect to auto-set sidebar state based on device
+    // Strategy: Tablet = Mini (Collapsed), Desktop = Expanded
+    // We use a specific effect to react to media query changes
+    useEffect(() => {
+        if (isTabletOrLaptop) {
+            setIsSidebarCollapsed(true);
+        } else if (isDesktop) {
+            setIsSidebarCollapsed(false);
+        }
+    }, [isTabletOrLaptop, isDesktop]);
 
     // Dynamic drawer width based on collapse state
     // 80px for collapsed (icon only), 240px for expanded

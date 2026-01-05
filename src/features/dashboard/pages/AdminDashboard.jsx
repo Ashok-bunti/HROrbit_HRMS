@@ -13,7 +13,7 @@ import {
     ListItemText,
     Divider,
     useTheme,
-
+    useMediaQuery
 } from '@mui/material';
 import {
     PeopleAlt,
@@ -96,6 +96,7 @@ const StatCard = ({ title, value, icon, iconBgColor }) => {
 
 const AdminDashboard = () => {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     //engagement api call
     const { data: engagementData, isLoading } = useGetEngagementStatsQuery();
@@ -150,16 +151,12 @@ const AdminDashboard = () => {
     const formattedTotalSalary = `₹${(totalSalary / 100000).toFixed(1)}L`;
 
 
-
-
-
-
     return (
         <Box sx={{ pb: 4 }}>
             {/* Header Section */}
             <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
                 <Box>
-                    <Typography variant="h4" fontWeight="bold" sx={{ color: theme.palette.text.primary }}>
+                    <Typography variant="h4" fontWeight="bold" sx={{ color: theme.palette.text.primary, fontSize: { xs: '1.5rem', md: '2.125rem' } }}>
                         Dashboard Overview
                     </Typography>
                     <Typography variant="body1" color="text.secondary">
@@ -170,8 +167,8 @@ const AdminDashboard = () => {
             </Box>
 
             {/* Stats Cards */}
-            <Box sx={{ display: 'flex', gap: 3, mb: 4, flexWrap: 'wrap', }}>
-                <Box sx={{ flex: '1 1 calc(25% - 18px)', minWidth: '200px', borderRadius: 2, overflow: 'hidden' }}>
+            <Box sx={{ display: 'flex', gap: 3, mb: 4, flexWrap: 'wrap' }}>
+                <Box sx={{ flex: isMobile ? '1 1 100%' : '1 1 calc(25% - 18px)', minWidth: isMobile ? '100%' : '200px', borderRadius: 2, overflow: 'hidden' }}>
                     <StatCard
                         title="Employees"
                         value={empStats?.stats?.total_employees || 0}
@@ -180,7 +177,7 @@ const AdminDashboard = () => {
                     />
                 </Box>
 
-                <Box sx={{ flex: '1 1 calc(25% - 18px)', minWidth: '200px', borderRadius: 2, overflow: 'hidden' }}>
+                <Box sx={{ flex: isMobile ? '1 1 100%' : '1 1 calc(25% - 18px)', minWidth: isMobile ? '100%' : '200px', borderRadius: 2, overflow: 'hidden' }}>
                     <StatCard
                         title="Total Salary"
                         value={isPayrollLoading ? '—' : formattedTotalSalary}
@@ -190,7 +187,7 @@ const AdminDashboard = () => {
 
                 </Box>
 
-                <Box sx={{ flex: '1 1 calc(25% - 18px)', minWidth: '200px', borderRadius: 2, overflow: 'hidden' }}>
+                <Box sx={{ flex: isMobile ? '1 1 100%' : '1 1 calc(25% - 18px)', minWidth: isMobile ? '100%' : '200px', borderRadius: 2, overflow: 'hidden' }}>
                     <StatCard
                         title="Pending Leaves"
                         value={isLeaveStatsLoading ? '—' : pendingLeaves}
@@ -199,7 +196,7 @@ const AdminDashboard = () => {
                     />
                 </Box>
 
-                <Box sx={{ flex: '1 1 calc(25% - 18px)', minWidth: '200px', borderRadius: 2, overflow: 'hidden' }}>
+                <Box sx={{ flex: isMobile ? '1 1 100%' : '1 1 calc(25% - 18px)', minWidth: isMobile ? '100%' : '200px', borderRadius: 2, overflow: 'hidden' }}>
                     <StatCard
                         title="Active Projects"
                         value={activeUsers}
@@ -212,7 +209,7 @@ const AdminDashboard = () => {
 
             {/* Charts Section */}
             <Box sx={{ display: 'flex', gap: 3, mb: 4, flexWrap: 'wrap' }}>
-                <Box sx={{ flexGrow: 3, minWidth: 400 }}>
+                <Box sx={{ flexGrow: 3, minWidth: isMobile ? '100%' : '400px' }}>
                     <Card sx={{ borderRadius: 2, height: '100%', boxShadow: theme.palette.mode === 'dark' ? 'none' : '0 2px 8px rgba(0,0,0,0.08)' }}>
                         <CardContent>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3, alignItems: 'center' }}>
@@ -278,7 +275,7 @@ const AdminDashboard = () => {
                         </CardContent>
                     </Card>
                 </Box>
-                <Box sx={{ flexGrow: 0.5, minWidth: 260 }}>
+                <Box sx={{ flexGrow: 0.5, minWidth: isMobile ? '100%' : '260px' }}>
                     <Card
                         sx={{
                             borderRadius: 2,
@@ -371,7 +368,7 @@ const AdminDashboard = () => {
 
             {/* Bottom Section */}
             <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                <Box sx={{ flex: '1 1 calc(50% - 12px)', minWidth: '300px' }}>
+                <Box sx={{ flex: isMobile ? '1 1 100%' : '1 1 calc(50% - 12px)', minWidth: isMobile ? '100%' : '300px' }}>
                     <Card
                         sx={{
                             borderRadius: 2,
@@ -459,7 +456,7 @@ const AdminDashboard = () => {
                     </Card>
                 </Box>
 
-                <Box sx={{ flex: '1 1 calc(50% - 12px)', minWidth: '300px' }}>
+                <Box sx={{ flex: isMobile ? '1 1 100%' : '1 1 calc(50% - 12px)', minWidth: isMobile ? '100%' : '300px' }}>
                     <Card sx={{
                         borderRadius: 2,
                         height: '100%',

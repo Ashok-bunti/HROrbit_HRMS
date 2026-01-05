@@ -23,7 +23,10 @@ import {
     InputLabel,
     Avatar,
     Divider,
-    Fade
+    alpha,
+    Fade,
+    useMediaQuery,
+    Stack
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import {
@@ -57,6 +60,7 @@ import useSnackbar from '../../../hooks/useSnackbar';
 const Departments = () => {
     const theme = useTheme();
     const navigate = useNavigate();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { can, isAdmin } = usePermissions();
     const [statusFilter, setStatusFilter] = useState('all');
     const [paginationModel, setPaginationModel] = useState({
@@ -353,30 +357,41 @@ const Departments = () => {
                 title="Departments"
                 subtitle="Manage department structure and hierarchy."
                 action={
-                    can('departments', 'create') && (
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleOpenDialog()}
-                            sx={{ borderRadius: 2 }}
-                        >
-                            Add Department
-                        </Button>
-                    )
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 2, width: { xs: '100%', sm: 'auto' } }}>
+                        <TextField
+                            placeholder="Search departments..."
+                            size="small"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                                    </InputAdornment>
+                                ),
+                                sx: { bgcolor: 'background.paper', borderRadius: 2 }
+                            }}
+                            sx={{ width: { xs: '100%', sm: 300 } }}
+                        />
+                        {can('departments', 'create') && (
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={() => handleOpenDialog()}
+                                sx={{ borderRadius: 2, px: 3, whiteSpace: 'nowrap' }}
+                            >
+                                Add Department
+                            </Button>
+                        )}
+                    </Box>
                 }
             />
 
-            <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 2 }}>
-                <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2 }}>
-                    <TextField
-                        placeholder="Search departments..."
-                        size="small"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        sx={{ minWidth: 300 }}
-                    />
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        <FormControl size="small" sx={{ minWidth: 150 }}>
+            {isMobile ? (
+                // MOBILE: Card List
+                <Stack spacing={2}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
+                        <FormControl size="small" fullWidth sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
                             <InputLabel>Status</InputLabel>
                             <Select
                                 value={statusFilter}
@@ -389,81 +404,173 @@ const Departments = () => {
                             </Select>
                         </FormControl>
                     </Box>
-                </Box>
-                <Box sx={{
-                    height: 565,
-                    width: '100%',
-                    '& .MuiDataGrid-root': {
-                        border: 'none',
-                        '& .MuiDataGrid-main': {
-                            borderRadius: 0
-                        },
-                        '& .MuiDataGrid-cell': {
-                            borderBottom: '1px solid',
-                            borderColor: 'divider',
-                            fontSize: '0.875rem',
-                            '&:focus': {
-                                outline: 'none'
-                            },
-                            '&:focus-within': {
-                                outline: 'none'
-                            }
-                        },
-                        '& .MuiDataGrid-columnHeader': {
-                            backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
-                            color: 'text.secondary',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            textTransform: 'uppercase',
-                            letterSpacing: '1px',
-                            '&:focus': {
-                                outline: 'none'
-                            },
-                            '&:focus-within': {
-                                outline: 'none'
-                            }
-                        },
-                        '& .MuiDataGrid-row:hover': {
-                            backgroundColor: (theme) => theme.palette.action.hover,
-                        },
-                        '& .MuiDataGrid-columnSeparator': {
-                            display: 'none'
-                        },
-                        // Custom Scrollbar
-                        '& ::-webkit-scrollbar': {
-                            width: 8,
-                            height: 8,
-                        },
-                        '& ::-webkit-scrollbar-track': {
-                            backgroundColor: 'transparent',
-                        },
-                        '& ::-webkit-scrollbar-thumb': {
-                            backgroundColor: (theme) => theme.palette.divider,
-                            borderRadius: 4,
-                            '&:hover': {
-                                backgroundColor: (theme) => theme.palette.text.disabled,
-                            },
-                        },
-                    }
-                }}>
-                    <DataGrid
-                        rows={data?.departments || []}
-                        columns={columns}
-                        loading={isLoading}
-                        pageSizeOptions={[10, 25, 50]}
-                        paginationModel={paginationModel}
-                        onPaginationModelChange={setPaginationModel}
-                        paginationMode="server"
-                        rowCount={data?.pagination?.total || 0}
-                        disableRowSelectionOnClick
-                        density="compact"
-                        rowHeight={52}
-                        columnHeaderHeight={48}
-                    />
-                </Box>
-            </Card>
 
-            <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+                    {(data?.departments || []).map((dept) => (
+                        <Card key={dept.id} sx={{ p: 2, borderRadius: 2, boxShadow: theme.shadows[1] }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                <Typography variant="subtitle1" fontWeight={700} color="primary.main">
+                                    {dept.name}
+                                </Typography>
+                                <Chip
+                                    label={dept.is_active ? 'Active' : 'Inactive'}
+                                    color={dept.is_active ? 'success' : 'error'}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ fontWeight: 600, fontSize: '0.65rem' }}
+                                />
+                            </Box>
+
+                            {dept.description && (
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.4 }}>
+                                    {dept.description}
+                                </Typography>
+                            )}
+
+                            {dept.head_email && (
+                                <Box sx={{ display: 'flex', gap: 1, mb: 1.5, alignItems: 'center' }}>
+                                    <Typography variant="body2" fontWeight={600} color="text.secondary">Head:</Typography>
+                                    <Typography variant="body2">{dept.head_email}</Typography>
+                                </Box>
+                            )}
+
+                            <Divider sx={{ my: 1.5 }} />
+
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={() => {
+                                        setViewTeamsDepartment(dept);
+                                        setTeamListOpen(true);
+                                    }}
+                                    sx={{ fontWeight: 600, borderRadius: 2, textTransform: 'none' }}
+                                >
+                                    {dept.team_count || 0} Teams
+                                </Button>
+
+                                <Box sx={{ display: 'flex' }}>
+                                    {can('departments', 'update') && (
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => handleOpenDialog(dept)}
+                                            sx={{ color: 'primary.main', border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.5), mr: 1, borderRadius: 1 }}
+                                        >
+                                            <EditIcon fontSize="small" />
+                                        </IconButton>
+                                    )}
+                                    {can('departments', 'delete') && (
+                                        <IconButton
+                                            size="small"
+                                            onClick={() => handleDeleteClick(dept)}
+                                            sx={{ color: 'error.main', border: '1px solid', borderColor: alpha(theme.palette.error.main, 0.5), borderRadius: 1 }}
+                                        >
+                                            <DeleteIcon fontSize="small" />
+                                        </IconButton>
+                                    )}
+                                </Box>
+                            </Box>
+                        </Card>
+                    ))}
+                    {(data?.departments || []).length === 0 && (
+                        <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+                            <Typography>No departments found.</Typography>
+                        </Box>
+                    )}
+                </Stack>
+            ) : (
+                // DESKTOP: DataGrid
+                <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 2 }}>
+                    <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2 }}>
+                        <Box sx={{ display: 'flex', gap: 2 }}>
+                            <FormControl size="small" sx={{ minWidth: 150 }}>
+                                <InputLabel>Status</InputLabel>
+                                <Select
+                                    value={statusFilter}
+                                    label="Status"
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                >
+                                    <MenuItem value="all">All Status</MenuItem>
+                                    <MenuItem value="true">Active</MenuItem>
+                                    <MenuItem value="false">Inactive</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Box>
+                    </Box>
+                    <Box sx={{
+                        height: 565,
+                        width: '100%',
+                        '& .MuiDataGrid-root': {
+                            border: 'none',
+                            '& .MuiDataGrid-main': {
+                                borderRadius: 0
+                            },
+                            '& .MuiDataGrid-cell': {
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                fontSize: '0.875rem',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
+                            },
+                            '& .MuiDataGrid-columnHeader': {
+                                backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
+                                color: 'text.secondary',
+                                fontWeight: 700,
+                                fontSize: '0.75rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
+                            },
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: (theme) => theme.palette.action.hover,
+                            },
+                            '& .MuiDataGrid-columnSeparator': {
+                                display: 'none'
+                            },
+                            // Custom Scrollbar
+                            '& ::-webkit-scrollbar': {
+                                width: 8,
+                                height: 8,
+                            },
+                            '& ::-webkit-scrollbar-track': {
+                                backgroundColor: 'transparent',
+                            },
+                            '& ::-webkit-scrollbar-thumb': {
+                                backgroundColor: (theme) => theme.palette.divider,
+                                borderRadius: 4,
+                                '&:hover': {
+                                    backgroundColor: (theme) => theme.palette.text.disabled,
+                                },
+                            },
+                        }
+                    }}>
+                        <DataGrid
+                            rows={data?.departments || []}
+                            columns={columns}
+                            loading={isLoading}
+                            pageSizeOptions={[10, 25, 50]}
+                            paginationModel={paginationModel}
+                            onPaginationModelChange={setPaginationModel}
+                            paginationMode="server"
+                            rowCount={data?.pagination?.total || 0}
+                            disableRowSelectionOnClick
+                            density="compact"
+                            rowHeight={52}
+                            columnHeaderHeight={48}
+                        />
+                    </Box>
+                </Card>
+            )}
+
+            <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth fullScreen={isMobile}>
                 <DialogTitle>{selectedDepartment ? 'Edit Department' : 'Add Department'}</DialogTitle>
                 <form onSubmit={handleSubmit}>
                     <DialogContent dividers>
@@ -574,6 +681,7 @@ const Departments = () => {
                 }}
                 maxWidth="md"
                 fullWidth
+                fullScreen={isMobile}
             >
                 <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
                     <Box>
@@ -779,6 +887,7 @@ const Departments = () => {
                 }}
                 maxWidth="md"
                 fullWidth
+                fullScreen={isMobile}
             >
                 <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
                     <Box>

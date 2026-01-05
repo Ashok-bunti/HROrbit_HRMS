@@ -194,7 +194,7 @@ const ResetPassword = () => {
                 <Box
                     sx={{
                         width: { xs: '100%', md: '50%' },
-                        p: 5,
+                        p: { xs: 3, md: 5 },
                         backgroundColor: 'background.paper',
                         display: 'flex',
                         flexDirection: 'column',

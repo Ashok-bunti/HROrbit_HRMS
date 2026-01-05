@@ -9,12 +9,17 @@ import {
     Grid,
     Paper,
     Alert,
-    CircularProgress
+    CircularProgress,
+    useMediaQuery,
+    Stack,
+    alpha,
+    InputAdornment,
+    TextField
 } from '@mui/material';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
 import useSnackbar from '../../../hooks/useSnackbar';
 import { DataGrid } from '@mui/x-data-grid';
-import { AccessTime, Login, Logout } from '@mui/icons-material';
+import { AccessTime, Login, Logout, Search } from '@mui/icons-material';
 import { format } from 'date-fns';
 import {
     useGetAllAttendanceQuery,
@@ -25,15 +30,25 @@ import {
 import { useAuth } from '../../../context/AuthContext';
 
 import { usePermissions } from '../../../hooks/usePermissions';
+import { useTheme } from '@mui/material/styles';
 
 const Attendance = () => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { can, isAdmin: isUserAdmin, isHR } = usePermissions();
     const { user } = useAuth();
+    const [searchTerm, setSearchTerm] = useState('');
     const { data: attendanceData, isLoading, error } = useGetAllAttendanceQuery({});
     const { data: statsData } = useGetAttendanceStatsQuery({});
 
     const [clockIn, { isLoading: isClockingIn }] = useClockInMutation();
     const [clockOut, { isLoading: isClockingOut }] = useClockOutMutation();
+
+
+    const filteredAttendance = (attendanceData?.attendance || []).filter(att =>
+        (att.employee_name && att.employee_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (att.status && att.status.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
     const { snackbar, showSnackbar, hideSnackbar } = useSnackbar();
     const [todayAttendance, setTodayAttendance] = useState(null);
@@ -206,44 +221,57 @@ const Attendance = () => {
 
     return (
         <Box sx={{ pb: 4 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
-                <Box>
-                    <Typography variant="h4" fontWeight={800} sx={{ color: 'text.primary', mb: 0.5 }}>
-                        Attendance
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                        Track and manage daily attendance records.
-                    </Typography>
-                </Box>
-                {can('attendance', 'create') && !isAdmin && (
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                        {(!isClockedIn || (isClockedIn && isClockedOut)) && (
-                            <Button
-                                variant="contained"
-                                startIcon={<Login />}
-                                onClick={handleClockIn}
-                                disabled={isClockingIn}
-                                sx={{ borderRadius: 2, px: 3 }}
-                            >
-                                Clock In
-                            </Button>
-                        )}
+            <PageHeader
+                title="Attendance"
+                subtitle="Track and manage daily attendance records."
+                action={
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 2 }}>
+                        <TextField
+                            placeholder="Search attendance..."
+                            size="small"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <Search fontSize="small" sx={{ color: 'text.secondary' }} />
+                                    </InputAdornment>
+                                ),
+                                sx: { bgcolor: 'background.paper', borderRadius: 2 }
+                            }}
+                            sx={{ width: { xs: '100%', sm: 300 } }}
+                        />
+                        {can('attendance', 'create') && !isAdmin && (
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                {(!isClockedIn || (isClockedIn && isClockedOut)) && (
+                                    <Button
+                                        variant="contained"
+                                        startIcon={<Login />}
+                                        onClick={handleClockIn}
+                                        disabled={isClockingIn}
+                                        sx={{ borderRadius: 2, px: 3, whiteSpace: 'nowrap' }}
+                                    >
+                                        Clock In
+                                    </Button>
+                                )}
 
-                        {isClockedIn && !isClockedOut && (
-                            <Button
-                                variant="contained"
-                                color="warning"
-                                startIcon={<Logout />}
-                                onClick={handleClockOut}
-                                disabled={isClockingOut}
-                                sx={{ borderRadius: 2, px: 3 }}
-                            >
-                                Clock Out
-                            </Button>
+                                {isClockedIn && !isClockedOut && (
+                                    <Button
+                                        variant="contained"
+                                        color="warning"
+                                        startIcon={<Logout />}
+                                        onClick={handleClockOut}
+                                        disabled={isClockingOut}
+                                        sx={{ borderRadius: 2, px: 3, whiteSpace: 'nowrap' }}
+                                    >
+                                        Clock Out
+                                    </Button>
+                                )}
+                            </Box>
                         )}
                     </Box>
-                )}
-            </Box>
+                }
+            />
 
 
 
@@ -292,79 +320,142 @@ const Attendance = () => {
                 </Grid>
             )}
 
-            <Card sx={{ overflow: 'hidden', boxShadow: (theme) => theme.shadows[2], borderRadius: 2 }}>
-                <Box sx={{
-                    height: 650,
-                    width: '100%',
-                    '& .MuiDataGrid-root': {
-                        border: 'none',
-                        '& .MuiDataGrid-main': {
-                            borderRadius: 2
-                        },
-                        '& .MuiDataGrid-cell': {
-                            borderBottom: '1px solid',
-                            borderColor: 'divider',
-                            fontSize: '0.875rem',
-                            '&:focus': {
-                                outline: 'none'
+            {isMobile ? (
+                // MOBILE: Card List
+                <Stack spacing={2}>
+                    {filteredAttendance.map((att) => {
+                        let statusColor = 'default';
+                        if (att.status === 'Present') statusColor = 'success';
+                        else if (att.status === 'Absent') statusColor = 'error';
+                        else if (att.status === 'Late') statusColor = 'warning';
+
+                        const dateStr = att.check_in_time ? format(new Date(att.check_in_time), 'dd MMM, yyyy') : '- -';
+                        const checkInStr = att.check_in_time ? format(new Date(att.check_in_time), 'hh:mm a') : '- -';
+                        const checkOutStr = att.check_out_time ? format(new Date(att.check_out_time), 'hh:mm a') : '- -';
+
+                        return (
+                            <Card key={att.id} sx={{ p: 2, borderRadius: 2, boxShadow: theme.shadows[1] }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                    <Box>
+                                        {(isAdmin || att.employee_name) && (
+                                            <Typography variant="subtitle1" fontWeight={700} color="primary.main">
+                                                {att.employee_name || 'My Attendance'}
+                                            </Typography>
+                                        )}
+                                        <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                                            {dateStr}
+                                        </Typography>
+                                    </Box>
+                                    <Chip
+                                        label={att.status || '- -'}
+                                        color={statusColor}
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ fontWeight: 600, height: 24 }}
+                                    />
+                                </Box>
+
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'action.hover', p: 1.5, borderRadius: 1 }}>
+                                    <Box sx={{ textAlign: 'center' }}>
+                                        <Typography variant="caption" color="text.secondary" display="block">Check In</Typography>
+                                        <Typography variant="body2" fontWeight={600} color="success.main">{checkInStr}</Typography>
+                                    </Box>
+                                    <Box sx={{ width: 1, height: 24, bgcolor: 'divider', mx: 2 }}></Box>
+                                    <Box sx={{ textAlign: 'center' }}>
+                                        <Typography variant="caption" color="text.secondary" display="block">Check Out</Typography>
+                                        <Typography variant="body2" fontWeight={600} color={att.check_out_time ? 'error.main' : 'text.disabled'}>{checkOutStr}</Typography>
+                                    </Box>
+                                    <Box sx={{ width: 1, height: 24, bgcolor: 'divider', mx: 2 }}></Box>
+                                    <Box sx={{ textAlign: 'center' }}>
+                                        <Typography variant="caption" color="text.secondary" display="block">Hours</Typography>
+                                        <Typography variant="body2" fontWeight={700}>{att.work_hours ? `${att.work_hours}h` : '-'}</Typography>
+                                    </Box>
+                                </Box>
+                            </Card>
+                        );
+                    })}
+                    {filteredAttendance.length === 0 && (
+                        <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+                            <Typography>No attendance records found.</Typography>
+                        </Box>
+                    )}
+                </Stack>
+            ) : (
+                // DESKTOP: DataGrid
+                <Card sx={{ overflow: 'hidden', boxShadow: (theme) => theme.shadows[2], borderRadius: 2 }}>
+                    <Box sx={{
+                        height: 650,
+                        width: '100%',
+                        '& .MuiDataGrid-root': {
+                            border: 'none',
+                            '& .MuiDataGrid-main': {
+                                borderRadius: 2
                             },
-                            '&:focus-within': {
-                                outline: 'none'
-                            }
-                        },
-                        '& .MuiDataGrid-columnHeader': {
-                            backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
-                            color: 'text.secondary',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            textTransform: 'uppercase',
-                            letterSpacing: '1px',
-                            '&:focus': {
-                                outline: 'none'
+                            '& .MuiDataGrid-cell': {
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                fontSize: '0.875rem',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
                             },
-                            '&:focus-within': {
-                                outline: 'none'
-                            }
-                        },
-                        '& .MuiDataGrid-row:hover': {
-                            backgroundColor: (theme) => theme.palette.action.hover,
-                        },
-                        '& .MuiDataGrid-columnSeparator': {
-                            display: 'none'
-                        },
-                        // Custom Scrollbar
-                        '& ::-webkit-scrollbar': {
-                            width: 8,
-                            height: 8,
-                        },
-                        '& ::-webkit-scrollbar-track': {
-                            backgroundColor: 'transparent',
-                        },
-                        '& ::-webkit-scrollbar-thumb': {
-                            backgroundColor: (theme) => theme.palette.divider,
-                            borderRadius: 4,
-                            '&:hover': {
-                                backgroundColor: (theme) => theme.palette.text.disabled,
+                            '& .MuiDataGrid-columnHeader': {
+                                backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
+                                color: 'text.secondary',
+                                fontWeight: 700,
+                                fontSize: '0.75rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
                             },
-                        },
-                    }
-                }}>
-                    <DataGrid
-                        rows={attendanceData?.attendance || []}
-                        columns={columns}
-                        initialState={{
-                            pagination: {
-                                paginationModel: { page: 0, pageSize: 10 },
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: (theme) => theme.palette.action.hover,
                             },
-                        }}
-                        pageSizeOptions={[10, 25, 50]}
-                        disableRowSelectionOnClick
-                        density="compact"
-                        rowHeight={52}
-                        columnHeaderHeight={48}
-                    />
-                </Box>
-            </Card>
+                            '& .MuiDataGrid-columnSeparator': {
+                                display: 'none'
+                            },
+                            // Custom Scrollbar
+                            '& ::-webkit-scrollbar': {
+                                width: 8,
+                                height: 8,
+                            },
+                            '& ::-webkit-scrollbar-track': {
+                                backgroundColor: 'transparent',
+                            },
+                            '& ::-webkit-scrollbar-thumb': {
+                                backgroundColor: (theme) => theme.palette.divider,
+                                borderRadius: 4,
+                                '&:hover': {
+                                    backgroundColor: (theme) => theme.palette.text.disabled,
+                                },
+                            },
+                        }
+                    }}>
+                        <DataGrid
+                            rows={filteredAttendance}
+                            columns={columns}
+                            initialState={{
+                                pagination: {
+                                    paginationModel: { page: 0, pageSize: 10 },
+                                },
+                            }}
+                            pageSizeOptions={[10, 25, 50]}
+                            disableRowSelectionOnClick
+                            density="compact"
+                            rowHeight={52}
+                            columnHeaderHeight={48}
+                        />
+                    </Box>
+                </Card>
+            )}
 
             <CustomSnackbar
                 open={snackbar.open}

@@ -107,7 +107,7 @@ const MFASetup = ({ embedded }) => {
     );
 
     const ContentWrapper = embedded ? Box : Container;
-    const wrapperProps = embedded ? { sx: { py: 0 } } : { maxWidth: "md", sx: { py: 4 } };
+    const wrapperProps = embedded ? { sx: { py: 0 } } : { maxWidth: "md", sx: { py: { xs: 2, md: 4 } } };
 
     return (
         <ContentWrapper {...wrapperProps}>
@@ -209,14 +209,14 @@ const MFASetup = ({ embedded }) => {
                                         <Grid item xs={12} sm={7}>
 
 
-                                            <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                                            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'stretch' }}>
                                                 <TextField
                                                     size="small"
                                                     label="Code"
                                                     placeholder="000000"
                                                     value={verificationCode}
                                                     onChange={(e) => setVerificationCode(e.target.value)}
-                                                    sx={{ width: '200px' }}
+                                                    sx={{ width: { xs: '100%', sm: '200px' } }}
                                                     inputProps={{
                                                         maxLength: 6,
                                                         style: { textAlign: 'center', letterSpacing: '0.4em', fontWeight: 700, fontSize: '1.1rem' }
@@ -226,7 +226,7 @@ const MFASetup = ({ embedded }) => {
                                                     variant="contained"
                                                     onClick={handleVerify}
                                                     disabled={isVerifying || verificationCode.length !== 6}
-                                                    sx={{ py: 1, borderRadius: 2, minWidth: '140px' }}
+                                                    sx={{ py: 1, borderRadius: 2, minWidth: '140px', width: { xs: '100%', sm: 'auto' } }}
                                                 >
                                                     {isVerifying ? <CircularProgress size={24} color="inherit" /> : 'Confirm Setup'}
                                                 </Button>

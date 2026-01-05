@@ -16,7 +16,9 @@ import {
     Chip,
     useTheme,
     alpha,
-    TextField
+
+    TextField,
+    InputAdornment
 } from '@mui/material';
 import { DataGrid } from '@mui/x-data-grid';
 import {
@@ -173,8 +175,13 @@ const Biometric = () => {
     const { can } = usePermissions();
     const { user } = useAuth();
     const [tabValue, setTabValue] = useState(0);
+    const [searchTerm, setSearchTerm] = useState('');
     const { data: attendanceData, isLoading, error } = useGetAllAttendanceQuery({});
     const { data: statsData } = useGetAttendanceStatsQuery({});
+
+    const filteredLogs = (attendanceData?.attendance || []).filter(row =>
+        (row.employee_name && row.employee_name.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
     // Columns
     const columns = [
@@ -281,6 +288,30 @@ const Biometric = () => {
             <PageHeader
                 title="Biometric Dashboard"
                 subtitle="Real-time tracking and device management hub."
+                action={
+                    tabValue === 1 && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <TextField
+                                placeholder="Search activity logs..."
+                                size="small"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <Search fontSize="small" sx={{ color: 'text.secondary' }} />
+                                        </InputAdornment>
+                                    ),
+                                    sx: { bgcolor: 'background.paper', borderRadius: 2 }
+                                }}
+                                sx={{ width: { xs: '100%', sm: 300 } }}
+                            />
+                            <Button startIcon={<FilterList />} variant="contained" sx={{ borderRadius: 2 }}>
+                                Filter
+                            </Button>
+                        </Box>
+                    )
+                }
             />
 
             {/* Tabs */}
@@ -446,21 +477,6 @@ const Biometric = () => {
                 {/* --- ACTIVITY LOGS TAB --- */}
                 {tabValue === 1 && (
                     <Box sx={{ p: 4 }}>
-                        <Box sx={{ display: 'flex', gap: 2, mb: 4 }}>
-                            <TextField
-                                fullWidth
-                                placeholder="Search activity logs..."
-                                size="small"
-                                InputProps={{
-                                    startAdornment: <Search sx={{ mr: 1, color: 'text.disabled' }} />,
-                                    sx: { borderRadius: 2 }
-                                }}
-                                sx={{ maxWidth: 450 }}
-                            />
-                            <Button startIcon={<FilterList />} variant="outlined" sx={{ borderRadius: 2 }}>
-                                Advanced Search
-                            </Button>
-                        </Box>
                         <Box sx={{
                             height: 600,
                             width: '100%',
@@ -518,7 +534,7 @@ const Biometric = () => {
                             }
                         }}>
                             <DataGrid
-                                rows={attendanceData?.attendance || []}
+                                rows={filteredLogs}
                                 columns={columns}
                                 initialState={{ pagination: { paginationModel: { page: 0, pageSize: 15 } } }}
                                 pageSizeOptions={[15, 30, 50]}

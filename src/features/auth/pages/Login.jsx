@@ -111,28 +111,29 @@ const Login = () => {
             sx={{
                 minHeight: '100vh',
                 display: 'flex',
-                alignItems: 'center',
+                alignItems: { xs: 'flex-start', sm: 'center' }, // Top align on mobile
                 justifyContent: 'center',
                 backgroundColor: 'background.default',
-                px: 2,
+                p: { xs: 0, sm: 2 }, // Remove padding on mobile
             }}
         >
             <Card
                 sx={{
                     width: '100%',
-                    maxWidth: 900,
-                    minHeight: 520,
+                    maxWidth: { xs: '100%', sm: 500, md: 900 },
+                    minHeight: { xs: '100vh', sm: 520 }, // Full height on mobile
                     display: 'flex',
-                    borderRadius: 2,
+                    borderRadius: { xs: 0, sm: 2 }, // No radius on mobile
                     overflow: 'hidden',
-                    boxShadow: '0 20px 50px rgba(0,0,0,0.12)',
+                    boxShadow: { xs: 'none', sm: '0 20px 50px rgba(0,0,0,0.12)' }, // Flat on mobile
+                    transition: 'all 0.3s ease-in-out'
                 }}
             >
                 {/* LEFT – LOGIN FORM */}
                 <Box
                     sx={{
-                        width: '50%',
-                        p: 5,
+                        width: { xs: '100%', md: '50%' },
+                        p: { xs: 3, sm: 5 }, // Smaller padding on mobile
                         backgroundColor: 'background.paper',
                         display: 'flex',
                         flexDirection: 'column',
@@ -143,6 +144,7 @@ const Login = () => {
                     <Box
                         sx={{
                             mb: mfaRequired ? 1 : 4,
+                            marginTop: { xs: 4, sm: 0 }, // Add top margin on mobile for spacing
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'center',
@@ -154,7 +156,7 @@ const Login = () => {
                             src={logo_image}
                             alt="Application Logo"
                             sx={{
-                                height: 64,
+                                height: { xs: 48, sm: 64 }, // Smaller logo on mobile
                                 mb: 2,
                                 objectFit: 'contain',
                                 filter: theme.palette.mode === 'dark' ? 'brightness(0) invert(1)' : 'none',
@@ -164,7 +166,7 @@ const Login = () => {
                         {!mfaRequired && (
                             <Typography
                                 sx={{
-                                    fontSize: '1rem',
+                                    fontSize: { xs: '1rem', sm: '1.1rem' },
                                     fontWeight: 500,
                                     color: 'text.secondary',
                                 }}
@@ -220,6 +222,8 @@ const Login = () => {
                                                 <IconButton
                                                     onClick={() => setShowPassword(!showPassword)}
                                                     edge="end"
+                                                    size="large" // Larger touch target
+                                                    sx={{ p: 1.5 }} // Increase hit area
                                                 >
                                                     {showPassword ? <VisibilityOff /> : <Visibility />}
                                                 </IconButton>
@@ -234,6 +238,8 @@ const Login = () => {
                                     justifyContent="space-between"
                                     alignItems="center"
                                     mb={3}
+                                    flexWrap="wrap"
+                                    gap={1}
                                 >
                                     <FormControlLabel
                                         control={<Checkbox size="small" />}
@@ -255,11 +261,13 @@ const Login = () => {
                                         handleLogin(false);
                                     }}
                                     sx={{
-                                        py: 1.4,
+                                        py: 1.5, // Taller button for touch
+                                        fontSize: '1rem',
                                         fontWeight: 600,
                                         textTransform: 'none',
                                         boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
                                         whiteSpace: 'nowrap',
+                                        borderRadius: 2,
                                         '&:hover': {
                                             bgcolor: theme.palette.primary.dark,
                                             boxShadow: '0 6px 16px rgba(0,0,0,0.2)'

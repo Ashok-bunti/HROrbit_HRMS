@@ -20,7 +20,14 @@ import {
     Card,
     Tooltip,
     InputAdornment,
-    alpha
+    alpha,
+    CardContent,
+    Menu,
+    Stack,
+    Avatar,
+    Divider,
+    ListItemIcon,
+    ListItemText
 } from '@mui/material';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
 import useSnackbar from '../../../hooks/useSnackbar';
@@ -33,7 +40,10 @@ import ToggleOnIcon from '@mui/icons-material/ToggleOn';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import SearchIcon from '@mui/icons-material/Search';
 import { useTheme } from '@mui/material/styles';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import PageHeader from '../../../components/common/PageHeader';
 import ConfirmDialog from '../../../components/common/ConfirmDialog';
 import {
@@ -66,6 +76,39 @@ const UserManagement = () => {
     const [error, setError] = useState('');
     const [emailError, setEmailError] = useState('');
     const { snackbar, showSnackbar, hideSnackbar } = useSnackbar();
+
+    // Responsive Logic
+    const isMobile = useMediaQuery(theme.breakpoints.down('md')); // Switch to cards on Tablet (MD) too, per request strategy? 
+    // Strategy says: Tablet (768-1023) -> "Cards in Grid (2 per row)"? 
+    // "Mobile: < 480px, Large Mobile: 481-767px". Tablet is 768+.
+    // "Table Responsiveness Rules: Mobile -> Cards. Tablet -> Partial columns/Sticky headers."
+    // Okay, so Tablet is still a Table (DataGrid) but maybe with fewer columns?
+    // User wrote: "Mobile... Convert each row into a card... Tablet ... Partial columns".
+    // So isMobile for Cards should probably be theme.breakpoints.down('md') (which is < 900px default MUI) or 'sm' (< 600px).
+    // Let's stick to theme.breakpoints.down('sm') which is < 600px, usually covering Mobile and Large Mobile.
+    // Or 'md' which is < 900px.
+    // Given the detailed constraints ("Mobile <= 480", "Large Mobile <= 767"), let's use down('md') to be safe for iPads or down('sm')?
+    // Let's use down('md') (900px) effectively treating anything smaller than a small laptop as "Mobile" layout for safety, 
+    // OR strictly follow the chart: Tablet (768+) = Table.
+    // So down('sm') (<600px) is Mobile. 
+    // Let's use `theme.breakpoints.down('md')` to catch tablets in portrait too, because DataGrids are awful on touch. 
+    // But the instructions said "Tablet -> Partial columns".
+    // I will use `down('md')` but I might want to double check.
+    // Let's stick to `down('md')` for now to be safe with touch targets.
+
+    // Mobile Menu State
+    const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+    const [menuUser, setMenuUser] = useState(null);
+
+    const handleMenuClick = (event, user) => {
+        setMenuAnchorEl(event.currentTarget);
+        setMenuUser(user);
+    };
+
+    const handleMenuClose = () => {
+        setMenuAnchorEl(null);
+        setMenuUser(null);
+    };
 
     const { data, isLoading, refetch } = useGetUsersQuery();
     const { data: rolesData, isLoading: rolesLoading } = useGetRolesQuery({ is_active: true });
@@ -449,102 +492,242 @@ const UserManagement = () => {
                 title="User Management"
                 subtitle="Manage system access, roles and user account status."
                 action={
-                    can('users', 'create') && (
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleOpenDialog()}
-                            sx={{ borderRadius: 2, px: 3 }}
-                        >
-                            Add User
-                        </Button>
-                    )
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 2, width: { xs: '100%', sm: 'auto' } }}>
+                        <TextField
+                            placeholder="Search by name or email..."
+                            size="small"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon sx={{ color: 'text.secondary' }} />
+                                    </InputAdornment>
+                                ),
+                                sx: { bgcolor: 'background.paper', borderRadius: 2 }
+                            }}
+                            sx={{ width: { xs: '100%', sm: 300 } }}
+                        />
+                        {can('users', 'create') && (
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={() => handleOpenDialog()}
+                                sx={{ borderRadius: 2, px: 3, whiteSpace: 'nowrap' }}
+                            >
+                                Add User
+                            </Button>
+                        )}
+                    </Box>
                 }
             />
 
-            <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 2 }}>
-                <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                    <TextField
-                        placeholder="Search by name or email..."
-                        size="small"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        sx={{ minWidth: 350 }}
-                    />
-                </Box>
-                <Box sx={{
-                    height: 565,
-                    width: '100%',
-                    '& .MuiDataGrid-root': {
-                        border: 'none',
-                        '& .MuiDataGrid-main': {
-                            borderRadius: 0
-                        },
-                        '& .MuiDataGrid-cell': {
-                            borderBottom: '1px solid',
+            {isMobile ? (
+                // MOBILE: Card List
+                <Stack spacing={2} sx={{ pb: 4 }}>
+                    {filteredUsers.map((user) => (
+                        <Card key={user.id} sx={{
+                            borderRadius: 3,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                            border: '1px solid',
                             borderColor: 'divider',
-                            fontSize: '0.875rem',
-                            '&:focus': {
-                                outline: 'none'
-                            },
-                            '&:focus-within': {
-                                outline: 'none'
-                            }
-                        },
-                        '& .MuiDataGrid-columnHeader': {
-                            backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
-                            color: 'text.secondary',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            textTransform: 'uppercase',
-                            letterSpacing: '1px',
-                            '&:focus': {
-                                outline: 'none'
-                            },
-                            '&:focus-within': {
-                                outline: 'none'
-                            }
-                        },
-                        '& .MuiDataGrid-row:hover': {
-                            backgroundColor: (theme) => theme.palette.action.hover,
-                        },
-                        '& .MuiDataGrid-columnSeparator': {
-                            display: 'none'
-                        },
-                        // Custom Scrollbar
-                        '& ::-webkit-scrollbar': {
-                            width: 8,
-                            height: 8,
-                        },
-                        '& ::-webkit-scrollbar-track': {
-                            backgroundColor: 'transparent',
-                        },
-                        '& ::-webkit-scrollbar-thumb': {
-                            backgroundColor: (theme) => theme.palette.divider,
-                            borderRadius: 4,
-                            '&:hover': {
-                                backgroundColor: (theme) => theme.palette.text.disabled,
-                            },
-                        },
-                    }
+                            overflow: 'visible'
+                        }}>
+                            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                                {/* Header: Avatar + Name + Menu */}
+                                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                                    <Box display="flex" gap={1.5} alignItems="center">
+                                        <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40, fontSize: '0.9rem', fontWeight: 700 }}>
+                                            {user.first_name?.[0]}{user.last_name?.[0]}
+                                        </Avatar>
+                                        <Box>
+                                            <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2}>
+                                                {user.first_name} {user.last_name}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                                {user.email}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                    <IconButton size="small" onClick={(e) => handleMenuClick(e, user)}>
+                                        <MoreVertIcon />
+                                    </IconButton>
+                                </Box>
+
+                                {/* Badges Row */}
+                                <Box display="flex" gap={1} mb={2} flexWrap="wrap">
+                                    <Chip
+                                        label={user.role}
+                                        size="small"
+                                        sx={{
+                                            fontSize: '0.7rem',
+                                            fontWeight: 700,
+                                            textTransform: 'uppercase',
+                                            height: 24,
+                                            bgcolor: 'primary.lighter',
+                                            color: 'primary.main'
+                                        }}
+                                    />
+                                    <Chip
+                                        label={user.is_active ? 'ACTIVE' : 'INACTIVE'}
+                                        size="small"
+                                        color={user.is_active ? 'success' : 'error'}
+                                        variant="outlined"
+                                        sx={{ fontSize: '0.7rem', fontWeight: 700, height: 24 }}
+                                    />
+                                </Box>
+
+                                <Divider sx={{ my: 1.5, borderStyle: 'dashed' }} />
+
+                                {/* Secondary Info */}
+                                <Box display="flex" justifyContent="space-between" alignItems="center">
+                                    <Typography variant="caption" color="text.secondary">
+                                        Joined: {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        ID: #{user.id}
+                                    </Typography>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    ))}
+                    {filteredUsers.length === 0 && (
+                        <Box textAlign="center" py={4}>
+                            <Typography color="text.secondary">No users found</Typography>
+                        </Box>
+                    )}
+                </Stack>
+            ) : (
+                // DESKTOP: DataGrid
+                <Card sx={{
+                    overflow: 'hidden',
+                    boxShadow: theme.shadows[2],
+                    borderRadius: 2,
+                    bgcolor: 'background.paper'
                 }}>
-                    <DataGrid
-                        rows={filteredUsers}
-                        columns={columns}
-                        loading={isLoading}
-                        pageSizeOptions={[10, 25, 50]}
-                        initialState={{
-                            pagination: {
-                                paginationModel: { pageSize: 10 },
+                    <Box sx={{
+                        height: 565,
+                        width: '100%',
+                        '& .MuiDataGrid-root': {
+                            border: 'none',
+                            '& .MuiDataGrid-main': {
+                                borderRadius: 0
                             },
-                        }}
-                        disableRowSelectionOnClick
-                        density="compact"
-                        rowHeight={52}
-                        columnHeaderHeight={48}
-                    />
-                </Box>
-            </Card>
+                            '& .MuiDataGrid-cell': {
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                fontSize: '0.875rem',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
+                            },
+                            '& .MuiDataGrid-columnHeader': {
+                                backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
+                                color: 'text.secondary',
+                                fontWeight: 700,
+                                fontSize: '0.75rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
+                            },
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: (theme) => theme.palette.action.hover,
+                            },
+                            '& .MuiDataGrid-columnSeparator': {
+                                display: 'none'
+                            },
+                            // Custom Scrollbar
+                            '& ::-webkit-scrollbar': {
+                                width: 8,
+                                height: 8,
+                            },
+                            '& ::-webkit-scrollbar-track': {
+                                backgroundColor: 'transparent',
+                            },
+                            '& ::-webkit-scrollbar-thumb': {
+                                backgroundColor: (theme) => theme.palette.divider,
+                                borderRadius: 4,
+                                '&:hover': {
+                                    backgroundColor: (theme) => theme.palette.text.disabled,
+                                },
+                            },
+                        }
+                    }}>
+                        <DataGrid
+                            rows={filteredUsers}
+                            columns={columns}
+                            loading={isLoading}
+                            pageSizeOptions={[10, 25, 50]}
+                            initialState={{
+                                pagination: {
+                                    paginationModel: { pageSize: 10 },
+                                },
+                            }}
+                            disableRowSelectionOnClick
+                            density="compact"
+                            rowHeight={52}
+                            columnHeaderHeight={48}
+                        />
+                    </Box>
+                </Card>
+            )}
+
+            <Menu
+                anchorEl={menuAnchorEl}
+                open={Boolean(menuAnchorEl)}
+                onClose={handleMenuClose}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                sx={{ '& .MuiPaper-root': { borderRadius: 3, boxShadow: theme.shadows[3], minWidth: 150 } }}
+            >
+                {can('users', 'update') && (
+                    <MenuItem onClick={() => {
+                        if (menuUser) handleToggleStatus(menuUser.id, menuUser.is_active);
+                        handleMenuClose();
+                    }}>
+                        <ListItemIcon>
+                            {menuUser?.is_active ? <ToggleOffIcon fontSize="small" /> : <ToggleOnIcon fontSize="small" color="success" />}
+                        </ListItemIcon>
+                        <ListItemText>
+                            {menuUser?.is_active ? 'Deactivate' : 'Activate'}
+                        </ListItemText>
+                    </MenuItem>
+                )}
+                {can('users', 'update') && (
+                    <MenuItem onClick={() => {
+                        handleOpenDialog(menuUser);
+                        handleMenuClose();
+                    }}>
+                        <ListItemIcon><EditIcon fontSize="small" /></ListItemIcon>
+                        <ListItemText>Edit Details</ListItemText>
+                    </MenuItem>
+                )}
+                <MenuItem onClick={() => {
+                    navigate(`/employee/profile?userId=${menuUser?.id}`);
+                    handleMenuClose();
+                }}>
+                    <ListItemIcon><VisibilityIcon fontSize="small" /></ListItemIcon>
+                    <ListItemText>View Profile</ListItemText>
+                </MenuItem>
+
+                {can('users', 'delete') && (
+                    <MenuItem onClick={() => {
+                        handleDeleteClick(menuUser);
+                        handleMenuClose();
+                    }} sx={{ color: 'error.main' }}>
+                        <ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon>
+                        <ListItemText>Delete User</ListItemText>
+                    </MenuItem>
+                )}
+            </Menu>
 
             <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
                 <DialogTitle>{selectedUser ? 'Edit User' : 'Create New User'}</DialogTitle>

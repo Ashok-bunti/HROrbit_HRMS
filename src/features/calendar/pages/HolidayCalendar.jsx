@@ -19,6 +19,7 @@ import {
     FormControl,
     InputLabel,
     Tooltip,
+    InputAdornment,
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -26,7 +27,9 @@ import {
     Delete as DeleteIcon,
     ChevronLeft,
     ChevronRight,
+
     EventAvailable as EventIcon,
+    Search
 } from '@mui/icons-material';
 import PageHeader from '../../../components/common/PageHeader';
 import { usePermissions } from '../../../hooks/usePermissions';
@@ -48,6 +51,7 @@ const HolidayCalendar = () => {
 
     const currentYear = new Date().getFullYear();
     const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [searchTerm, setSearchTerm] = useState('');
 
     // Generate dynamic years (e.g., 5 years back and 5 years forward)
     const availableYears = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
@@ -93,7 +97,8 @@ const HolidayCalendar = () => {
     const getHolidaysForMonth = (monthIndex) => {
         return holidays.filter(h => {
             const date = new Date(h.date);
-            return date.getMonth() === monthIndex && date.getFullYear() === selectedYear;
+            const matchesSearch = h.name.toLowerCase().includes(searchTerm.toLowerCase());
+            return date.getMonth() === monthIndex && date.getFullYear() === selectedYear && matchesSearch;
         }).sort((a, b) => new Date(a.date) - new Date(b.date));
     };
 
@@ -150,7 +155,22 @@ const HolidayCalendar = () => {
                 title="Holiday Calendar"
                 subtitle="View and manage company holidays"
                 action={
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'center' }}>
+                        <TextField
+                            placeholder="Search holidays..."
+                            size="small"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <Search fontSize="small" sx={{ color: 'text.secondary' }} />
+                                    </InputAdornment>
+                                ),
+                                sx: { bgcolor: 'background.paper', borderRadius: 2 }
+                            }}
+                            sx={{ width: { xs: '100%', sm: 300 } }}
+                        />
                         <FormControl size="small" sx={{ minWidth: 120 }}>
                             <Select
                                 value={selectedYear}

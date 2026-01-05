@@ -13,24 +13,31 @@ import {
     Divider,
     Chip,
     CircularProgress,
-    Alert
+    Alert,
+    useMediaQuery,
+    InputAdornment,
+    TextField,
 } from '@mui/material';
-import { Visibility, Download } from '@mui/icons-material';
+import { useTheme } from '@mui/material/styles';
+import { Visibility, Download, Search } from '@mui/icons-material';
 import { useGetEmployeePayslipsQuery, useGetPayslipByIdQuery } from '../../payroll/store/payrollApi';
 import { useAuth } from '../../../context/AuthContext';
-
+import PageHeader from '../../../components/common/PageHeader';
 const PayslipView = ({ payslipId, open, onClose }) => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const { data, isLoading } = useGetPayslipByIdQuery(payslipId, { skip: !payslipId });
     const payslip = data?.payslip;
 
     if (!open) return null;
 
     return (
-        <Dialog 
-            open={open} 
-            onClose={onClose} 
-            maxWidth="md" 
+        <Dialog
+            open={open}
+            onClose={onClose}
+            maxWidth="md"
             fullWidth
+            fullScreen={isMobile}
             PaperProps={{
                 sx: {
                     borderRadius: 1,
@@ -51,7 +58,7 @@ const PayslipView = ({ payslipId, open, onClose }) => {
                     </Box>
                 ) : payslip ? (
                     <Box id="payslip-content">
-                        <Box sx={{ display: 'flex', gap: 4, mt: 2 }}>
+                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 2, sm: 4 }, mt: 2 }}>
                             <Box sx={{ flex: 1 }}>
                                 <Typography variant="caption" color="text.secondary" fontWeight={500} sx={{ display: 'block', mb: 0.5 }}>
                                     Employee Name
@@ -84,7 +91,7 @@ const PayslipView = ({ payslipId, open, onClose }) => {
 
 
 
-                        <Box sx={{ display: 'flex', gap: 4 , mt:4}}>
+                        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 2, sm: 4 }, mt: 4 }}>
                             <Box sx={{ flex: 1 }}>
                                 <Typography variant="h6" gutterBottom color="success.main" fontWeight={600} sx={{ mb: 2 }}>
                                     Earnings
@@ -157,26 +164,26 @@ const PayslipView = ({ payslipId, open, onClose }) => {
                             </Box>
                         </Box>
 
-                      <Box
-  sx={{
-    mt: 4,
-    p: 1.5,
-    bgcolor: 'primary.light',
-    borderRadius: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 1.5,
-  }}
->
-  <Typography variant="body2" color="text.secondary" fontWeight={500}>
-    Net Pay:
-  </Typography>
+                        <Box
+                            sx={{
+                                mt: 4,
+                                p: 1.5,
+                                bgcolor: 'primary.light',
+                                borderRadius: 1,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 1.5,
+                            }}
+                        >
+                            <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                                Net Pay:
+                            </Typography>
 
-  <Typography variant="h5" fontWeight={700} color="primary.main">
-    ₹{Number(payslip.net_salary).toLocaleString()}
-  </Typography>
-</Box>
+                            <Typography variant="h5" fontWeight={700} color="primary.main">
+                                ₹{Number(payslip.net_salary).toLocaleString()}
+                            </Typography>
+                        </Box>
 
                     </Box>
                 ) : (
@@ -184,9 +191,9 @@ const PayslipView = ({ payslipId, open, onClose }) => {
                 )}
             </DialogContent>
             <DialogActions sx={{ px: 4, py: 2.5, display: 'flex', justifyContent: 'space-between' }}>
-                <Button 
-                    onClick={onClose} 
-                    sx={{ 
+                <Button
+                    onClick={onClose}
+                    sx={{
                         color: 'primary.main',
                         textTransform: 'none',
                         fontWeight: 500
@@ -194,11 +201,11 @@ const PayslipView = ({ payslipId, open, onClose }) => {
                 >
                     Close
                 </Button>
-                <Button 
-                    startIcon={<Download />} 
-                    variant="contained" 
+                <Button
+                    startIcon={<Download />}
+                    variant="contained"
                     onClick={() => window.print()}
-                    sx={{ 
+                    sx={{
                         bgcolor: 'primary.main',
                         textTransform: 'none',
                         borderRadius: 1,
@@ -220,12 +227,37 @@ const Payslips = () => {
     const { user } = useAuth();
     const { data, isLoading } = useGetEmployeePayslipsQuery(user?.employeeId || user?.id);
     const [selectedPayslipId, setSelectedPayslipId] = useState(null);
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredPayslips = (data?.payslips || []).filter(payslip =>
+        (payslip.month && payslip.month.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (payslip.year && payslip.year.toString().includes(searchTerm)) ||
+        (payslip.payment_status && payslip.payment_status.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
     return (
-        <Box sx={{ p: 3 }}>
-            <Typography variant="h5" fontWeight={700} gutterBottom sx={{ mb: 3 }}>
-                My Payslips
-            </Typography>
+        <Box sx={{ pb: 3 }}>
+            <PageHeader
+                title="My Payslips"
+                subtitle="View and download your monthly payslips."
+                action={
+                    <TextField
+                        placeholder="Search payslips..."
+                        size="small"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Search fontSize="small" sx={{ color: 'text.secondary' }} />
+                                </InputAdornment>
+                            ),
+                            sx: { bgcolor: 'background.paper', borderRadius: 2 }
+                        }}
+                        sx={{ width: { xs: '100%', sm: 300 } }}
+                    />
+                }
+            />
 
             {isLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -233,17 +265,17 @@ const Payslips = () => {
                 </Box>
             ) : (
                 <Grid container spacing={3}>
-                    {data?.payslips?.map((payslip) => (
+                    {filteredPayslips.map((payslip) => (
                         <Grid item xs={12} sm={6} md={4} key={payslip.id}>
-                            <Card 
-                                sx={{ 
+                            <Card
+                                sx={{
                                     borderRadius: 1,
                                     boxShadow: 'none',
                                     border: '1px solid',
                                     borderColor: 'divider',
                                     transition: 'box-shadow 0.3s ease',
                                     backgroundColor: 'background.default',
-                                   
+
                                 }}
                             >
                                 <CardContent sx={{ p: 3.5 }}>
@@ -265,10 +297,10 @@ const Payslips = () => {
                                             }}
                                         />
                                     </Box>
-                                    <Typography 
-                                        variant="h4" 
-                                        fontWeight={700} 
-                                        color="primary.main" 
+                                    <Typography
+                                        variant="h4"
+                                        fontWeight={700}
+                                        color="primary.main"
                                         sx={{ mb: 0.5, fontSize: '1.65rem' }}
                                     >
                                         ₹{Number(payslip.net_salary).toLocaleString()}
@@ -281,7 +313,7 @@ const Payslips = () => {
                                         startIcon={<Visibility />}
                                         fullWidth
                                         onClick={() => setSelectedPayslipId(payslip.id)}
-                                        sx={{ 
+                                        sx={{
                                             borderColor: 'primary.main',
                                             color: 'primary.main',
                                             textTransform: 'none',
@@ -289,7 +321,7 @@ const Payslips = () => {
                                             py: 0.75,
                                             fontWeight: 600,
                                             fontSize: '0.85rem',
-                                           
+
                                         }}
                                     >
                                         View Details
@@ -298,7 +330,7 @@ const Payslips = () => {
                             </Card>
                         </Grid>
                     ))}
-                    {data?.payslips?.length === 0 && (
+                    {filteredPayslips.length === 0 && (
                         <Grid item xs={12}>
                             <Alert severity="info">No payslips available yet.</Alert>
                         </Grid>

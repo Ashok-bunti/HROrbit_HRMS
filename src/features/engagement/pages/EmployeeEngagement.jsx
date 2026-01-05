@@ -13,9 +13,10 @@ import {
     Alert,
     Rating,
     Divider,
-    Chip
+
+    InputAdornment
 } from '@mui/material';
-import { Send, Poll } from '@mui/icons-material';
+import { Send, Poll, Search } from '@mui/icons-material';
 import {
     useGetActiveSurveysQuery,
     useSubmitSurveyResponseMutation,
@@ -25,6 +26,7 @@ import {
 import { usePermissions } from '../../../hooks/usePermissions';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
 import useSnackbar from '../../../hooks/useSnackbar';
+import PageHeader from '../../../components/common/PageHeader';
 
 const EmployeeEngagement = () => {
     const { can } = usePermissions();
@@ -44,6 +46,12 @@ const EmployeeEngagement = () => {
 
     // Survey State
     const [answers, setAnswers] = useState({});
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredSurveys = (surveysData?.surveys || []).filter(survey =>
+        survey.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        survey.description.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const handleFeedbackSubmit = async () => {
         try {
@@ -86,9 +94,29 @@ const EmployeeEngagement = () => {
 
     return (
         <Box>
-            <Typography variant="h4" fontWeight="bold" gutterBottom>
-                Employee Engagement
-            </Typography>
+            <PageHeader
+                title="Employee Engagement"
+                subtitle="Participate in surveys and share your feedback."
+                action={
+                    can('surveys', 'read') && (
+                        <TextField
+                            placeholder="Search surveys..."
+                            size="small"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <Search fontSize="small" sx={{ color: 'text.secondary' }} />
+                                    </InputAdornment>
+                                ),
+                                sx: { bgcolor: 'background.paper', borderRadius: 2 }
+                            }}
+                            sx={{ width: { xs: '100%', sm: 300 } }}
+                        />
+                    )
+                }
+            />
 
 
 
@@ -100,11 +128,11 @@ const EmployeeEngagement = () => {
                             <Poll sx={{ mr: 1 }} /> Active Pulse Surveys
                         </Typography>
 
-                        {surveysData?.surveys?.length === 0 && (
-                            <Alert severity="info">No active surveys at the moment.</Alert>
+                        {filteredSurveys.length === 0 && (
+                            <Alert severity="info">No active surveys found.</Alert>
                         )}
 
-                        {surveysData?.surveys?.map((survey) => (
+                        {filteredSurveys.map((survey) => (
                             <Card key={survey.id} sx={{ mb: 3, border: '1px solid #e0e0e0' }}>
                                 <CardContent>
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>

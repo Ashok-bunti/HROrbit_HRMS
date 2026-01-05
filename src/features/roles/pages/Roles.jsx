@@ -24,7 +24,10 @@ import {
     TableRow,
     Switch,
     Paper,
-    alpha
+    alpha,
+    useMediaQuery,
+    Stack,
+    InputAdornment
 } from '@mui/material';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
 import useSnackbar from '../../../hooks/useSnackbar';
@@ -33,6 +36,7 @@ import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import SearchIcon from '@mui/icons-material/Search';
 import { useTheme } from '@mui/material/styles';
 import PageHeader from '../../../components/common/PageHeader';
 import ConfirmDialog from '../../../components/common/ConfirmDialog';
@@ -49,6 +53,7 @@ import { usePermissions } from '../../../hooks/usePermissions';
 const Roles = () => {
     const theme = useTheme();
     const { can } = usePermissions();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [searchTerm, setSearchTerm] = useState('');
     const { data, isLoading } = useGetRolesQuery();
     const { data: matrixData } = useGetPermissionsMatrixQuery();
@@ -304,108 +309,183 @@ const Roles = () => {
                 title="Role Management"
                 subtitle="Define system roles and configure modular access permissions."
                 action={
-                    can('roles', 'create') && (
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={() => handleOpenDialog()}
-                            sx={{ borderRadius: 2, px: 3 }}
-                        >
-                            Create Role
-                        </Button>
-                    )
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 2, width: { xs: '100%', sm: 'auto' } }}>
+                        <TextField
+                            placeholder="Search roles by name or description..."
+                            size="small"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon sx={{ color: 'text.secondary' }} />
+                                    </InputAdornment>
+                                ),
+                                sx: { bgcolor: 'background.paper', borderRadius: 2 }
+                            }}
+                            sx={{ width: { xs: '100%', sm: 300 } }}
+                        />
+                        {can('roles', 'create') && (
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={() => handleOpenDialog()}
+                                sx={{ borderRadius: 2, px: 3, whiteSpace: 'nowrap' }}
+                            >
+                                Create Role
+                            </Button>
+                        )}
+                    </Box>
                 }
             />
 
-            <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 2 }}>
-                <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
-                    <TextField
-                        placeholder="Search roles by name or description..."
-                        size="small"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        sx={{ minWidth: 350 }}
-                    />
-                </Box>
-                <Box sx={{
-                    height: 565,
-                    width: '100%',
-                    '& .MuiDataGrid-root': {
-                        border: 'none',
-                        '& .MuiDataGrid-main': {
-                            borderRadius: 0
-                        },
-                        '& .MuiDataGrid-cell': {
-                            borderBottom: '1px solid',
-                            borderColor: 'divider',
-                            fontSize: '0.875rem',
-                            '&:focus': {
-                                outline: 'none'
+            {isMobile ? (
+                // MOBILE: Card List
+                <Stack spacing={2}>
+                    {filteredRoles.map((role) => {
+                        const isSystemRole = ['admin', 'hr', 'employee'].includes(role.name?.toLowerCase());
+
+                        return (
+                            <Card key={role.id} sx={{ p: 2, borderRadius: 2, boxShadow: theme.shadows[1] }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                    <Typography variant="subtitle1" fontWeight={700} color="primary.main" sx={{ textTransform: 'uppercase' }}>
+                                        {role.name}
+                                    </Typography>
+                                    <Chip
+                                        label={role.is_active ? 'ACTIVE' : 'INACTIVE'}
+                                        color={role.is_active ? 'success' : 'default'}
+                                        size="small"
+                                        variant="outlined"
+                                        sx={{ fontWeight: 700, fontSize: '0.65rem' }}
+                                    />
+                                </Box>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.5 }}>
+                                    {role.description || 'No description provided.'}
+                                </Typography>
+
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <Chip
+                                        size="small"
+                                        icon={<ExpandMoreIcon sx={{ transform: 'rotate(-90deg)' }} />}  // Just a visual icon
+                                        label={`${role.user_count || 0} Users Linked`}
+                                        variant="outlined"
+                                        sx={{ fontWeight: 600, bgcolor: 'action.hover' }}
+                                    />
+
+                                    <Box sx={{ display: 'flex' }}>
+                                        {can('roles', 'update') && (
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleOpenDialog(role)}
+                                                sx={{ color: 'primary.main', border: '1px solid', borderColor: alpha(theme.palette.primary.main, 0.5), mr: 1, borderRadius: 1 }}
+                                            >
+                                                <EditIcon fontSize="small" />
+                                            </IconButton>
+                                        )}
+                                        {can('roles', 'delete') && !isSystemRole && (
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleDeleteClick(role)}
+                                                sx={{ color: 'error.main', border: '1px solid', borderColor: alpha(theme.palette.error.main, 0.5), borderRadius: 1 }}
+                                            >
+                                                <DeleteIcon fontSize="small" />
+                                            </IconButton>
+                                        )}
+                                    </Box>
+                                </Box>
+                            </Card>
+                        );
+                    })}
+                    {filteredRoles.length === 0 && (
+                        <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+                            <Typography>No roles found.</Typography>
+                        </Box>
+                    )}
+                </Stack>
+            ) : (
+                // DESKTOP: DataGrid
+                <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 2 }}>
+                    <Box sx={{
+                        height: 565,
+                        width: '100%',
+                        '& .MuiDataGrid-root': {
+                            border: 'none',
+                            '& .MuiDataGrid-main': {
+                                borderRadius: 0
                             },
-                            '&:focus-within': {
-                                outline: 'none'
-                            }
-                        },
-                        '& .MuiDataGrid-columnHeader': {
-                            backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
-                            color: 'text.secondary',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            textTransform: 'uppercase',
-                            letterSpacing: '1px',
-                            '&:focus': {
-                                outline: 'none'
+                            '& .MuiDataGrid-cell': {
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                fontSize: '0.875rem',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
                             },
-                            '&:focus-within': {
-                                outline: 'none'
-                            }
-                        },
-                        '& .MuiDataGrid-row:hover': {
-                            backgroundColor: (theme) => theme.palette.action.hover,
-                        },
-                        '& .MuiDataGrid-columnSeparator': {
-                            display: 'none'
-                        },
-                        // Custom Scrollbar
-                        '& ::-webkit-scrollbar': {
-                            width: 8,
-                            height: 8,
-                        },
-                        '& ::-webkit-scrollbar-track': {
-                            backgroundColor: 'transparent',
-                        },
-                        '& ::-webkit-scrollbar-thumb': {
-                            backgroundColor: (theme) => theme.palette.divider,
-                            borderRadius: 4,
-                            '&:hover': {
-                                backgroundColor: (theme) => theme.palette.text.disabled,
+                            '& .MuiDataGrid-columnHeader': {
+                                backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
+                                color: 'text.secondary',
+                                fontWeight: 700,
+                                fontSize: '0.75rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
                             },
-                        },
-                    }
-                }}>
-                    <DataGrid
-                        rows={filteredRoles}
-                        columns={columns}
-                        loading={isLoading}
-                        pageSizeOptions={[10, 25, 50]}
-                        initialState={{
-                            pagination: {
-                                paginationModel: { pageSize: 10 },
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: (theme) => theme.palette.action.hover,
                             },
-                        }}
-                        disableRowSelectionOnClick
-                        density="compact"
-                        rowHeight={52}
-                        columnHeaderHeight={48}
-                    />
-                </Box>
-            </Card>
+                            '& .MuiDataGrid-columnSeparator': {
+                                display: 'none'
+                            },
+                            // Custom Scrollbar
+                            '& ::-webkit-scrollbar': {
+                                width: 8,
+                                height: 8,
+                            },
+                            '& ::-webkit-scrollbar-track': {
+                                backgroundColor: 'transparent',
+                            },
+                            '& ::-webkit-scrollbar-thumb': {
+                                backgroundColor: (theme) => theme.palette.divider,
+                                borderRadius: 4,
+                                '&:hover': {
+                                    backgroundColor: (theme) => theme.palette.text.disabled,
+                                },
+                            },
+                        }
+                    }}>
+                        <DataGrid
+                            rows={filteredRoles}
+                            columns={columns}
+                            loading={isLoading}
+                            pageSizeOptions={[10, 25, 50]}
+                            initialState={{
+                                pagination: {
+                                    paginationModel: { pageSize: 10 },
+                                },
+                            }}
+                            disableRowSelectionOnClick
+                            density="compact"
+                            rowHeight={52}
+                            columnHeaderHeight={48}
+                        />
+                    </Box>
+                </Card>
+            )}
 
             <Dialog
                 open={openDialog}
                 onClose={handleCloseDialog}
                 maxWidth="lg"
                 fullWidth
+                fullScreen={isMobile}
                 PaperProps={{
                     sx: { borderRadius: 2, minHeight: '80vh', display: 'flex', flexDirection: 'column' }
                 }}

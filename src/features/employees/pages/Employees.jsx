@@ -19,8 +19,21 @@ import {
     Divider,
     Tab,
     Tabs,
-    IconButton
+    IconButton,
+    useMediaQuery,
+    Stack,
+    InputAdornment,
+    CardContent,
+    Avatar,
+    Menu,
+    MenuItem,
+    ListItemIcon,
+    ListItemText
 } from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
+import SearchIcon from '@mui/icons-material/Search';
+import ContactPhoneIcon from '@mui/icons-material/ContactPhone';
+import EmailIcon from '@mui/icons-material/Email';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
 import useSnackbar from '../../../hooks/useSnackbar';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -37,11 +50,27 @@ import ConfirmDialog from '../../../components/common/ConfirmDialog';
 import { useTheme } from '@mui/material/styles';
 
 import { usePermissions } from '../../../hooks/usePermissions';
-
 const Employees = () => {
     const theme = useTheme();
     const navigate = useNavigate();
     const { can } = usePermissions();
+
+    // Responsive Logic
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+    // Mobile Menu State
+    const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+    const [menuEmployee, setMenuEmployee] = useState(null);
+
+    const handleMenuClick = (event, employee) => {
+        setMenuAnchorEl(event.currentTarget);
+        setMenuEmployee(employee);
+    };
+
+    const handleMenuClose = () => {
+        setMenuAnchorEl(null);
+        setMenuEmployee(null);
+    };
 
     // Calculate maximum allowed date of birth (18 years ago from today)
     const maxDOB = new Date();
@@ -633,102 +662,229 @@ const Employees = () => {
             <PageHeader
                 title="Employees"
                 subtitle="Manage your organization's workforce."
-            // action={
-            //     can('employees', 'create') && (
-            //         <Button
-            //             variant="contained"
-            //             startIcon={<AddIcon />}
-            //             onClick={() => handleOpenDialog()}
-            //             sx={{ borderRadius: 2 }}
-            //         >
-            //             Add Employee
-            //         </Button>
-            //     )
-            // }
+                action={
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 2, width: { xs: '100%', sm: 'auto' } }}>
+                        <TextField
+                            placeholder="Search employees..."
+                            size="small"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon sx={{ color: 'text.secondary' }} />
+                                    </InputAdornment>
+                                ),
+                                sx: { bgcolor: 'background.paper', borderRadius: 2 }
+                            }}
+                            sx={{ width: { xs: '100%', sm: 300 } }}
+                        />
+                        {can('employees', 'create') && (
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={() => handleOpenDialog()}
+                                sx={{ borderRadius: 2, px: 3, whiteSpace: 'nowrap' }}
+                            >
+                                Add Employee
+                            </Button>
+                        )}
+                    </Box>
+                }
             />
 
-            <Card sx={{ overflow: 'hidden', borderRadius: 2, boxShadow: (theme) => theme.shadows[2] }}>
-                <Box sx={{ p: 2, borderBottom: '1px solid #f0f0f0' }}>
-                    <TextField
-                        placeholder="Search employees..."
-                        size="small"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        sx={{ minWidth: 300 }}
-                    />
-                </Box>
-                <Box sx={{
-                    height: 565,
-                    width: '100%',
-                    '& .MuiDataGrid-root': {
-                        border: 'none',
-                        '& .MuiDataGrid-main': {
-                            borderRadius: 0
-                        },
-                        '& .MuiDataGrid-cell': {
-                            borderBottom: '1px solid',
+            {isMobile ? (
+                // MOBILE: Card List
+                <Stack spacing={2} sx={{ pb: 4 }}>
+                    {(data?.employees || []).map((emp) => (
+                        <Card key={emp.id} sx={{
+                            borderRadius: 3,
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                            border: '1px solid',
                             borderColor: 'divider',
-                            fontSize: '0.875rem',
-                            '&:focus': {
-                                outline: 'none'
-                            },
-                            '&:focus-within': {
-                                outline: 'none'
-                            }
-                        },
-                        '& .MuiDataGrid-columnHeader': {
-                            backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
-                            color: 'text.secondary',
-                            fontWeight: 700,
-                            fontSize: '0.75rem',
-                            textTransform: 'uppercase',
-                            letterSpacing: '1px',
-                            '&:focus': {
-                                outline: 'none'
-                            },
-                            '&:focus-within': {
-                                outline: 'none'
-                            }
-                        },
-                        '& .MuiDataGrid-row:hover': {
-                            backgroundColor: (theme) => theme.palette.action.hover,
-                        },
-                        '& .MuiDataGrid-columnSeparator': {
-                            display: 'none'
-                        },
-                        // Custom Scrollbar
-                        '& ::-webkit-scrollbar': {
-                            width: 8,
-                            height: 8,
-                        },
-                        '& ::-webkit-scrollbar-track': {
-                            backgroundColor: 'transparent',
-                        },
-                        '& ::-webkit-scrollbar-thumb': {
-                            backgroundColor: (theme) => theme.palette.divider,
-                            borderRadius: 4,
-                            '&:hover': {
-                                backgroundColor: (theme) => theme.palette.text.disabled,
-                            },
-                        },
-                    }
+                            overflow: 'visible'
+                        }}>
+                            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                                {/* Header */}
+                                <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
+                                    <Box display="flex" gap={1.5} alignItems="center">
+                                        <Avatar sx={{ bgcolor: 'primary.main', width: 42, height: 42, fontSize: '1rem', fontWeight: 700 }}>
+                                            {emp.first_name?.[0]}{emp.last_name?.[0]}
+                                        </Avatar>
+                                        <Box>
+                                            <Typography variant="subtitle1" fontWeight={700} lineHeight={1.2}>
+                                                {emp.first_name} {emp.last_name}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                <EmailIcon sx={{ fontSize: 14 }} /> {emp.email}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                    <IconButton size="small" onClick={(e) => handleMenuClick(e, emp)}>
+                                        <MoreVertIcon />
+                                    </IconButton>
+                                </Box>
+
+                                {/* Badges */}
+                                <Box display="flex" gap={1} mb={2} flexWrap="wrap">
+                                    <Chip
+                                        label={emp.position || 'No Position'}
+                                        size="small"
+                                        sx={{ fontSize: '0.7rem', fontWeight: 600, height: 24, bgcolor: 'action.hover' }}
+                                    />
+                                    <Chip
+                                        label={emp.department?.name || emp.department_name || 'No Dept'}
+                                        size="small"
+                                        color="primary"
+                                        variant="outlined"
+                                        sx={{ fontSize: '0.7rem', fontWeight: 600, height: 24 }}
+                                    />
+                                </Box>
+
+                                <Divider sx={{ my: 1.5, borderStyle: 'dashed' }} />
+
+                                {/* Info Grid */}
+                                <Box display="grid" gridTemplateColumns="1fr 1fr" gap={1}>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" display="block">Code</Typography>
+                                        <Typography variant="body2" fontWeight={500}>{emp.employee_code}</Typography>
+                                    </Box>
+                                    <Box>
+                                        <Typography variant="caption" color="text.secondary" display="block">Join Date</Typography>
+                                        <Typography variant="body2" fontWeight={500}>
+                                            {emp.date_of_joining ? new Date(emp.date_of_joining).toLocaleDateString() : '-'}
+                                        </Typography>
+                                    </Box>
+                                    <Box gridColumn="span 2">
+                                        <Typography variant="caption" color="text.secondary" display="block">Phone</Typography>
+                                        <Typography variant="body2" fontWeight={500}>{emp.phone || '-'}</Typography>
+                                    </Box>
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    ))}
+                    {(data?.employees || []).length === 0 && (
+                        <Box textAlign="center" py={4}>
+                            <Typography color="text.secondary">No employees found</Typography>
+                        </Box>
+                    )}
+                </Stack>
+            ) : (
+                // DESKTOP: DataGrid
+                <Card sx={{
+                    overflow: 'hidden',
+                    borderRadius: 2,
+                    boxShadow: (theme) => theme.shadows[2],
+                    bgcolor: 'background.paper'
                 }}>
-                    <DataGrid
-                        rows={data?.employees || []}
-                        columns={columns}
-                        loading={isLoading}
-                        pageSizeOptions={[10, 25, 50]}
-                        paginationModel={paginationModel}
-                        onPaginationModelChange={setPaginationModel}
-                        paginationMode="server"
-                        rowCount={data?.pagination?.total || 0}
-                        disableRowSelectionOnClick
-                        density="compact"
-                        rowHeight={52}
-                        columnHeaderHeight={48}
-                    />
-                </Box>
-            </Card>
+                    <Box sx={{
+                        height: 565,
+                        width: '100%',
+                        '& .MuiDataGrid-root': {
+                            border: 'none',
+                            '& .MuiDataGrid-main': {
+                                borderRadius: 0
+                            },
+                            '& .MuiDataGrid-cell': {
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                fontSize: '0.875rem',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
+                            },
+                            '& .MuiDataGrid-columnHeader': {
+                                backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
+                                color: 'text.secondary',
+                                fontWeight: 700,
+                                fontSize: '0.75rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
+                            },
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: (theme) => theme.palette.action.hover,
+                            },
+                            '& .MuiDataGrid-columnSeparator': {
+                                display: 'none'
+                            },
+                            // Custom Scrollbar
+                            '& ::-webkit-scrollbar': {
+                                width: 8,
+                                height: 8,
+                            },
+                            '& ::-webkit-scrollbar-track': {
+                                backgroundColor: 'transparent',
+                            },
+                            '& ::-webkit-scrollbar-thumb': {
+                                backgroundColor: (theme) => theme.palette.divider,
+                                borderRadius: 4,
+                                '&:hover': {
+                                    backgroundColor: (theme) => theme.palette.text.disabled,
+                                },
+                            },
+                        }
+                    }}>
+                        <DataGrid
+                            rows={data?.employees || []}
+                            columns={columns}
+                            loading={isLoading}
+                            pageSizeOptions={[10, 25, 50]}
+                            paginationModel={paginationModel}
+                            onPaginationModelChange={setPaginationModel}
+                            paginationMode="server"
+                            rowCount={data?.pagination?.total || 0}
+                            disableRowSelectionOnClick
+                            density="compact"
+                            rowHeight={52}
+                            columnHeaderHeight={48}
+                        />
+                    </Box>
+                </Card>
+            )}
+
+            <Menu
+                anchorEl={menuAnchorEl}
+                open={Boolean(menuAnchorEl)}
+                onClose={handleMenuClose}
+                transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                sx={{ '& .MuiPaper-root': { borderRadius: 3, boxShadow: theme.shadows[3], minWidth: 150 } }}
+            >
+                <MenuItem onClick={() => {
+                    navigate(`/employee/profile?userId=${menuEmployee?.user_id}`);
+                    handleMenuClose();
+                }}>
+                    <ListItemIcon><VisibilityIcon fontSize="small" color="info" /></ListItemIcon>
+                    <ListItemText>View Profile</ListItemText>
+                </MenuItem>
+                {can('employees', 'update') && (
+                    <MenuItem onClick={() => {
+                        handleOpenDialog(menuEmployee);
+                        handleMenuClose();
+                    }}>
+                        <ListItemIcon><EditIcon fontSize="small" /></ListItemIcon>
+                        <ListItemText>Edit</ListItemText>
+                    </MenuItem>
+                )}
+                {can('employees', 'delete') && (
+                    <MenuItem onClick={() => {
+                        handleDeleteClick(menuEmployee);
+                        handleMenuClose();
+                    }} sx={{ color: 'error.main' }}>
+                        <ListItemIcon><DeleteIcon fontSize="small" color="error" /></ListItemIcon>
+                        <ListItemText>Delete</ListItemText>
+                    </MenuItem>
+                )}
+            </Menu>
 
             {/* Create/Edit Modal */}
             <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>

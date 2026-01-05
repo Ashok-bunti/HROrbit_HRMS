@@ -270,7 +270,7 @@ const LeavePolicies = () => {
                 title="Leave Policies"
                 subtitle="Configure and manage employee leave policies"
                 action={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 2, width: { xs: '100%', sm: 'auto' } }}>
                         <TextField
                             placeholder="Search policies..."
                             size="small"
@@ -284,7 +284,7 @@ const LeavePolicies = () => {
                                 ),
                                 sx: { bgcolor: 'background.paper', borderRadius: 2 }
                             }}
-                            sx={{ width: 300 }}
+                            sx={{ width: { xs: '100%', sm: 300 } }}
                         />
                         {can('leaves', 'create') && (
                             <Button

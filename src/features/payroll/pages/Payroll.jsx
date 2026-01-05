@@ -16,12 +16,18 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    Grid
+    Grid,
+    useMediaQuery,
+    Stack,
+    alpha,
+    Divider,
+    InputAdornment
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
 import useSnackbar from '../../../hooks/useSnackbar';
 import { DataGrid } from '@mui/x-data-grid';
-import { PlayArrow, Receipt, Edit } from '@mui/icons-material';
+import { PlayArrow, Receipt, Edit, Search } from '@mui/icons-material';
 import {
     useRunPayrollMutation,
     useGetPayrollRunsQuery,
@@ -34,6 +40,8 @@ import { usePermissions } from '../../../hooks/usePermissions';
 import PageHeader from '../../../components/common/PageHeader';
 
 const Payroll = () => {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { can } = usePermissions();
     const { data: runsData, isLoading } = useGetPayrollRunsQuery();
     const { data: rulesData, isLoading: isLoadingRules } = useGetStatutoryRulesQuery();
@@ -43,6 +51,13 @@ const Payroll = () => {
     const { snackbar, showSnackbar, hideSnackbar } = useSnackbar();
     const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'MMMM'));
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [searchTerm, setSearchTerm] = useState('');
+
+    const filteredRuns = (runsData?.runs || []).filter(run =>
+        (run.month && run.month.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (run.status && run.status.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (run.year && run.year.toString().includes(searchTerm))
+    );
 
     // Dialog State
     const [openDialog, setOpenDialog] = useState(false);
@@ -162,6 +177,23 @@ const Payroll = () => {
             <PageHeader
                 title="Payroll Management"
                 subtitle="Process monthly salaries, manage statutory rules, and track payout history."
+                action={
+                    <TextField
+                        placeholder="Search payroll history..."
+                        size="small"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Search fontSize="small" sx={{ color: 'text.secondary' }} />
+                                </InputAdornment>
+                            ),
+                            sx: { bgcolor: 'background.paper', borderRadius: 2 }
+                        }}
+                        sx={{ width: { xs: '100%', sm: 300 } }}
+                    />
+                }
             />
 
 
@@ -174,7 +206,7 @@ const Payroll = () => {
                                 <Typography variant="h6" fontWeight="800" gutterBottom sx={{ mb: 3 }}>
                                     Process New Payroll
                                 </Typography>
-                                <Box sx={{ display: 'flex', gap: 3, mb: 4 }}>
+                                <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3, mb: 4 }}>
                                     <TextField
                                         select
                                         label="Selection Month"
@@ -321,6 +353,45 @@ const Payroll = () => {
                         <Box sx={{ display: 'flex', justifyContent: 'center', p: 8 }}>
                             <CircularProgress />
                         </Box>
+                    ) : isMobile ? (
+                        // MOBILE: Card List
+                        <Stack spacing={2} sx={{ p: 2 }}>
+                            {filteredRuns.map((run) => (
+                                <Card key={run.id} sx={{ p: 2, borderRadius: 2, boxShadow: theme.shadows[1], border: '1px solid', borderColor: 'divider' }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                        <Box>
+                                            <Typography variant="h6" fontWeight={700} color="primary.main">
+                                                {run.month} {run.year}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary">
+                                                Processed: {run.created_at ? format(new Date(run.created_at), 'dd MMM, yyyy') : '-'}
+                                            </Typography>
+                                        </Box>
+                                        <Chip
+                                            label={run.status?.toUpperCase() || 'UNKNOWN'}
+                                            color={run.status === 'Processed' ? 'success' : 'default'}
+                                            size="small"
+                                            variant="outlined"
+                                            sx={{ fontWeight: 700, fontSize: '0.65rem', height: 24 }}
+                                        />
+                                    </Box>
+                                    <Divider sx={{ my: 1.5 }} />
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                                            Total Payout
+                                        </Typography>
+                                        <Typography variant="h6" fontWeight={800} color="success.main">
+                                            ₹{Number(run.total_payout || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                        </Typography>
+                                    </Box>
+                                </Card>
+                            ))}
+                            {filteredRuns.length === 0 && (
+                                <Box sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+                                    <Typography>No payroll runs found.</Typography>
+                                </Box>
+                            )}
+                        </Stack>
                     ) : (
                         <Box sx={{
                             height: 500,
@@ -370,7 +441,7 @@ const Payroll = () => {
                             }
                         }}>
                             <DataGrid
-                                rows={runsData?.runs || []}
+                                rows={filteredRuns}
                                 columns={columns}
                                 initialState={{
                                     pagination: { paginationModel: { pageSize: 10 } },
