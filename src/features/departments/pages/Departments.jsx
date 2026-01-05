@@ -40,6 +40,7 @@ import {
     useUpdateDepartmentMutation,
     useDeleteDepartmentMutation
 } from '../store/departmentApi';
+import { useGetTeamsQuery } from '../../teams/store/teamApi';
 import {
     useGetEmployeesQuery,
     useUpdateEmployeeMutation
@@ -86,6 +87,23 @@ const Departments = () => {
         is_active: true,
         employee_ids: [],
     });
+
+    const [teamListOpen, setTeamListOpen] = useState(false);
+    const [viewTeamsDepartment, setViewTeamsDepartment] = useState(null);
+    const [teamSearchTerm, setTeamSearchTerm] = useState('');
+
+    // Nested dialog for team members
+    const [teamMembersOpen, setTeamMembersOpen] = useState(false);
+    const [selectedTeamForMembers, setSelectedTeamForMembers] = useState(null);
+    const [teamMemberSearchTerm, setTeamMemberSearchTerm] = useState('');
+
+    const { data: teamsData, isFetching: isFetchingTeams } = useGetTeamsQuery({
+        department_id: viewTeamsDepartment?.id
+    }, {
+        skip: !viewTeamsDepartment
+    });
+
+    const departmentTeams = teamsData?.teams || [];
 
     const { data, isLoading, error, refetch } = useGetDepartmentsQuery({
         search: searchTerm,
@@ -244,19 +262,19 @@ const Departments = () => {
             )
         },
         {
-            field: 'employee_count',
-            headerName: 'EMP COUNT',
+            field: 'team_count',
+            headerName: 'TEAMS',
             width: 130,
             headerAlign: 'center',
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                    <Tooltip title="View Employees">
+                    <Tooltip title="View Teams">
                         <Button
                             size="small"
                             variant="text"
                             onClick={() => {
-                                setViewEmployees(params.row);
-                                setEmployeeListOpen(true);
+                                setViewTeamsDepartment(params.row);
+                                setTeamListOpen(true);
                             }}
                             sx={{ minWidth: 0, textDecoration: 'underline' }}
                         >
@@ -747,6 +765,248 @@ const Departments = () => {
                         variant="contained"
                         sx={{ borderRadius: 2 }}
                     >
+                        Close
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog
+                open={teamListOpen}
+                onClose={() => {
+                    setTeamListOpen(false);
+                    setTeamSearchTerm('');
+                    setViewTeamsDepartment(null);
+                }}
+                maxWidth="md"
+                fullWidth
+            >
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+                    <Box>
+                        Teams in {viewTeamsDepartment?.name}
+                        <Typography variant="caption" display="block" color="text.secondary">
+                            Total: {departmentTeams.length || 0} teams
+                        </Typography>
+                    </Box>
+                    <TextField
+                        size="small"
+                        placeholder="Search teams..."
+                        value={teamSearchTerm}
+                        onChange={(e) => setTeamSearchTerm(e.target.value)}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon fontSize="small" color="action" />
+                                </InputAdornment>
+                            ),
+                            sx: { borderRadius: 2, bgcolor: 'action.hover', '& fieldset': { border: 'none' } }
+                        }}
+                    />
+                </DialogTitle>
+                <DialogContent dividers sx={{ p: 0 }}>
+                    <Box sx={{
+                        height: 450,
+                        width: '100%',
+                        '& .MuiDataGrid-root': {
+                            border: 'none',
+                            '& .MuiDataGrid-cell': {
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                '&:focus': { outline: 'none' },
+                                '&:focus-within': { outline: 'none' }
+                            },
+                        }
+                    }}>
+                        <DataGrid
+                            rows={departmentTeams.filter(team =>
+                                team.name.toLowerCase().includes(teamSearchTerm.toLowerCase())
+                            )}
+                            loading={isFetchingTeams}
+                            columns={[
+                                {
+                                    field: 'name',
+                                    headerName: 'TEAM NAME',
+                                    flex: 1,
+                                    renderCell: (params) => (
+                                        <Typography variant="body2" fontWeight={600} color="primary.main">
+                                            {params.value}
+                                        </Typography>
+                                    )
+                                },
+                                {
+                                    field: 'manager_name',
+                                    headerName: 'MANAGER',
+                                    flex: 1,
+                                    renderCell: (params) => params.value || '-'
+                                },
+                                {
+                                    field: 'teamlead_name',
+                                    headerName: 'TEAM LEAD',
+                                    flex: 1,
+                                    renderCell: (params) => params.value || '-'
+                                },
+                                {
+                                    field: 'employee_count',
+                                    headerName: 'MEMBERS',
+                                    width: 130,
+                                    align: 'center',
+                                    headerAlign: 'center',
+                                    renderCell: (params) => (
+                                        <Button
+                                            size="small"
+                                            variant="text"
+                                            onClick={() => {
+                                                setSelectedTeamForMembers(params.row);
+                                                setTeamMembersOpen(true);
+                                            }}
+                                            sx={{ minWidth: 0, textDecoration: 'underline' }}
+                                        >
+                                            {params.value ?? 0}
+                                        </Button>
+                                    )
+                                },
+                                {
+                                    field: 'is_active',
+                                    headerName: 'STATUS',
+                                    width: 100,
+                                    renderCell: (params) => (
+                                        <Chip
+                                            label={params.value ? 'Active' : 'Inactive'}
+                                            color={params.value ? 'success' : 'error'}
+                                            size="small"
+                                            variant="outlined"
+                                        />
+                                    )
+                                }
+                            ]}
+                            density="compact"
+                            disableRowSelectionOnClick
+                            initialState={{
+                                pagination: { paginationModel: { pageSize: 10 } },
+                            }}
+                            pageSizeOptions={[10, 25]}
+                            rowHeight={52}
+                            columnHeaderHeight={48}
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setTeamListOpen(false)} variant="contained" sx={{ borderRadius: 2 }}>
+                        Close
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Nested Team Members Dialog */}
+            <Dialog
+                open={teamMembersOpen}
+                onClose={() => {
+                    setTeamMembersOpen(false);
+                    setTeamMemberSearchTerm('');
+                    setSelectedTeamForMembers(null);
+                }}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+                    <Box>
+                        Members in {selectedTeamForMembers?.name}
+                        <Typography variant="caption" display="block" color="text.secondary">
+                            Total: {selectedTeamForMembers?.employees?.length || 0} members
+                        </Typography>
+                    </Box>
+                    <TextField
+                        size="small"
+                        placeholder="Search members..."
+                        value={teamMemberSearchTerm}
+                        onChange={(e) => setTeamMemberSearchTerm(e.target.value)}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon fontSize="small" color="action" />
+                                </InputAdornment>
+                            ),
+                            sx: { borderRadius: 2, bgcolor: 'action.hover', '& fieldset': { border: 'none' } }
+                        }}
+                    />
+                </DialogTitle>
+                <DialogContent dividers sx={{ p: 0 }}>
+                    <Box sx={{
+                        height: 450,
+                        width: '100%',
+                        '& .MuiDataGrid-root': {
+                            border: 'none',
+                            '& .MuiDataGrid-cell': {
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                '&:focus': { outline: 'none' },
+                                '&:focus-within': { outline: 'none' }
+                            },
+                        }
+                    }}>
+                        <DataGrid
+                            rows={(selectedTeamForMembers?.employees || []).filter(emp => {
+                                const full_name = (emp.full_name || `${emp.first_name} ${emp.last_name}`).toLowerCase();
+                                const code = (emp.employee_code || '').toLowerCase();
+                                const search = teamMemberSearchTerm.toLowerCase();
+                                return full_name.includes(search) || code.includes(search);
+                            })}
+                            columns={[
+                                {
+                                    field: 'employee_code',
+                                    headerName: 'EMP CODE',
+                                    width: 120,
+                                    renderCell: (params) => (
+                                        <Typography variant="body2" fontWeight={700} color="primary.main">
+                                            {params.value}
+                                        </Typography>
+                                    )
+                                },
+                                {
+                                    field: 'full_name',
+                                    headerName: 'NAME',
+                                    flex: 1,
+                                    renderCell: (params) => (
+                                        <Typography variant="body2" fontWeight={600}>
+                                            {params.value || `${params.row.first_name} ${params.row.last_name}`}
+                                        </Typography>
+                                    )
+                                },
+                                { field: 'email', headerName: 'EMAIL', flex: 1 },
+                                {
+                                    field: 'position',
+                                    headerName: 'POSITION',
+                                    width: 150,
+                                    renderCell: (params) => (
+                                        <Chip label={params.value || 'N/A'} size="small" variant="outlined" />
+                                    )
+                                },
+                                {
+                                    field: 'is_active',
+                                    headerName: 'STATUS',
+                                    width: 100,
+                                    renderCell: (params) => (
+                                        <Chip
+                                            label={params.value ? 'Active' : 'Inactive'}
+                                            color={params.value ? 'success' : 'error'}
+                                            size="small"
+                                            variant="outlined"
+                                        />
+                                    )
+                                }
+                            ]}
+                            density="compact"
+                            disableRowSelectionOnClick
+                            initialState={{
+                                pagination: { paginationModel: { pageSize: 10 } },
+                            }}
+                            pageSizeOptions={[10, 25]}
+                            rowHeight={52}
+                            columnHeaderHeight={48}
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button onClick={() => setTeamMembersOpen(false)} variant="contained" sx={{ borderRadius: 2 }}>
                         Close
                     </Button>
                 </DialogActions>

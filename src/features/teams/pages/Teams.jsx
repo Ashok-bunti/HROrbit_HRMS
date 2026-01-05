@@ -26,7 +26,8 @@ import {
     Fade,
     Card,
     Autocomplete,
-    InputAdornment
+    InputAdornment,
+    Checkbox
 } from '@mui/material';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import {
@@ -36,10 +37,13 @@ import {
     Search as SearchIcon,
     People as PeopleIcon,
     Person as PersonIcon,
-    Business as BusinessIcon
+    Business as BusinessIcon,
+    CheckBoxOutlineBlank as CheckBoxOutlineBlankIcon,
+    CheckBox as CheckBoxIcon
 } from '@mui/icons-material';
 import {
     useGetTeamsQuery,
+    useGetTeamByIdQuery,
     useCreateTeamMutation,
     useUpdateTeamMutation,
     useDeleteTeamMutation
@@ -89,12 +93,32 @@ const Teams = () => {
         manager_id: '',
         teamlead_id: '',
         is_active: true,
+        member_ids: []
     });
 
     const { data, isLoading, error, refetch } = useGetTeamsQuery({
         is_active: statusFilter !== 'all' ? statusFilter : undefined,
         department_id: deptFilter !== 'all' ? deptFilter : undefined,
     });
+
+    const { data: teamDetailsData, refetch: refetchTeamDetails } = useGetTeamByIdQuery(viewMembersTeam?.id, {
+        skip: !viewMembersTeam,
+    });
+    const teamMembers = teamDetailsData?.team?.employees || [];
+
+    // Fetch team details when editing to populate members
+    const { data: teamEditDetails } = useGetTeamByIdQuery(selectedTeam?.id, {
+        skip: !selectedTeam
+    });
+
+    useEffect(() => {
+        if (teamEditDetails?.team && selectedTeam) {
+            setFormData(prev => ({
+                ...prev,
+                member_ids: teamEditDetails.team.employees?.map(e => e.id) || []
+            }));
+        }
+    }, [teamEditDetails, selectedTeam]);
 
     const { data: departmentsData } = useGetDepartmentsQuery({ is_active: 'true' });
     const departments = departmentsData?.departments || [];
@@ -114,15 +138,14 @@ const Teams = () => {
         try {
             await updateEmployee({ id: employee.id, team_id: null }).unwrap();
             showSnackbar(`${employee.first_name} removed from team`, 'success');
-            // Update local view if needed, or rely on refetch
-            if (viewMembersTeam) {
-                const updatedEmployees = viewMembersTeam.employees.filter(e => e.id !== employee.id);
-                setViewMembersTeam({ ...viewMembersTeam, employees: updatedEmployees });
-            }
+            refetchTeamDetails();
+            refetch(); // Refetch main list to update counts
         } catch (err) {
             showSnackbar(err.data?.error || 'Failed to remove member', 'error');
         }
     };
+
+
 
     const handleOpenDialog = (team = null) => {
         if (team) {
@@ -134,6 +157,7 @@ const Teams = () => {
                 manager_id: team.manager_id || '',
                 teamlead_id: team.teamlead_id || '',
                 is_active: team.is_active !== undefined ? team.is_active : true,
+                member_ids: [] // Will be populated by useEffect when details load
             });
         } else {
             setSelectedTeam(null);
@@ -144,6 +168,7 @@ const Teams = () => {
                 manager_id: '',
                 teamlead_id: '',
                 is_active: true,
+                member_ids: []
             });
         }
         setOpenDialog(true);
@@ -398,10 +423,14 @@ const Teams = () => {
                                 fontSize: '0.75rem',
                                 textTransform: 'uppercase',
                                 letterSpacing: '1px',
+                                '&:focus': { outline: 'none' },
+                                '&:focus-within': { outline: 'none' },
                             },
                             '& .MuiDataGrid-cell': {
                                 borderBottom: '1px solid',
                                 borderColor: 'divider',
+                                '&:focus': { outline: 'none' },
+                                '&:focus-within': { outline: 'none' },
                             },
                         }}
                     />
@@ -435,7 +464,7 @@ const Teams = () => {
                             </FormControl>
 
                             <Autocomplete
-                                options={employees}
+                                options={employees.filter(e => e.role === 'manager')}
                                 getOptionLabel={(option) => option.full_name || `${option.first_name} ${option.last_name}`}
                                 value={employees.find(e => (e.user_id || e.id) === formData.manager_id) || null}
                                 onChange={(event, newValue) => {
@@ -445,13 +474,36 @@ const Teams = () => {
                             />
 
                             <Autocomplete
-                                options={employees}
+                                options={employees.filter(e => e.role === 'teamlead')}
                                 getOptionLabel={(option) => option.full_name || `${option.first_name} ${option.last_name}`}
                                 value={employees.find(e => (e.user_id || e.id) === formData.teamlead_id) || null}
                                 onChange={(event, newValue) => {
                                     setFormData({ ...formData, teamlead_id: newValue ? (newValue.user_id || newValue.id) : '' });
                                 }}
                                 renderInput={(params) => <TextField {...params} label="Team Lead" required />}
+                            />
+
+                            <Autocomplete
+                                multiple
+                                options={employees.filter(e => e.role === 'employee')}
+                                disableCloseOnSelect
+                                getOptionLabel={(option) => option.full_name || `${option.first_name} ${option.last_name}`}
+                                value={employees.filter(e => formData.member_ids.includes(e.id || e.user_id))}
+                                onChange={(event, newValue) => {
+                                    setFormData({ ...formData, member_ids: newValue.map(v => v.id || v.user_id) });
+                                }}
+                                renderInput={(params) => <TextField {...params} label="Team Members" placeholder="Select employees" />}
+                                renderOption={(props, option, { selected }) => (
+                                    <li {...props}>
+                                        <Checkbox
+                                            icon={<CheckBoxOutlineBlankIcon fontSize="small" />}
+                                            checkedIcon={<CheckBoxIcon fontSize="small" />}
+                                            style={{ marginRight: 8 }}
+                                            checked={selected}
+                                        />
+                                        {option.full_name || `${option.first_name} ${option.last_name}`}
+                                    </li>
+                                )}
                             />
 
                             <TextField
@@ -526,9 +578,10 @@ const Teams = () => {
                     />
                 </DialogTitle>
                 <DialogContent dividers sx={{ p: 0 }}>
+
                     <Box sx={{ height: 400, width: '100%' }}>
                         <DataGrid
-                            rows={(viewMembersTeam?.employees || []).filter(emp => {
+                            rows={teamMembers.filter(emp => {
                                 const full_name = (emp.full_name || `${emp.first_name} ${emp.last_name}`).toLowerCase();
                                 return full_name.includes(memberSearchTerm.toLowerCase()) ||
                                     (emp.employee_code && emp.employee_code.toLowerCase().includes(memberSearchTerm.toLowerCase()));
@@ -539,18 +592,13 @@ const Teams = () => {
                                     headerName: 'NAME',
                                     flex: 1.5,
                                     renderCell: (params) => (
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                            <Avatar sx={{ width: 28, height: 28, fontSize: '0.8rem' }}>
-                                                {params.row.first_name?.[0]}
-                                            </Avatar>
-                                            <Box>
-                                                <Typography variant="body2" fontWeight={600}>
-                                                    {params.value || `${params.row.first_name} ${params.row.last_name}`}
-                                                </Typography>
-                                                <Typography variant="caption" color="text.secondary">
-                                                    {params.row.employee_code}
-                                                </Typography>
-                                            </Box>
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', height: '100%' }}>
+                                            <Typography variant="body2" fontWeight={600}>
+                                                {params.value || `${params.row.first_name} ${params.row.last_name}`}
+                                            </Typography>
+                                            <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1 }}>
+                                                {params.row.employee_code}
+                                            </Typography>
                                         </Box>
                                     )
                                 },

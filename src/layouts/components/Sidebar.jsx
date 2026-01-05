@@ -35,7 +35,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import logo_image from '../../../public/logo.png';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useTheme } from '@mui/material/styles';
-
+import GroupsIcon from '@mui/icons-material/Groups';
 const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, toggleSidebar }) => {
     const navigate = useNavigate();
     const location = useLocation();
@@ -72,7 +72,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, tog
     }
 
     if (can('teams', 'read') && !isEmployee) {
-        menuItems.push({ text: 'Teams', icon: <PeopleIcon />, path: '/teams' });
+        menuItems.push({ text: 'Teams', icon: <GroupsIcon />, path: '/teams' });
     }
 
 
