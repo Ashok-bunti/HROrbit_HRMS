@@ -385,6 +385,35 @@ const Teams = () => {
                             }}
                             sx={{ width: { xs: '100%', sm: 300 } }}
                         />
+                        <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+                            <FormControl size="small" sx={{ minWidth: 150, borderRadius: 1 }}>
+                                <InputLabel>Department</InputLabel>
+                                <Select
+                                    value={deptFilter}
+                                    label="Department"
+                                    onChange={(e) => setDeptFilter(e.target.value)}
+                                    MenuProps={{ PaperProps: { sx: { maxHeight: 300 } } }}
+                                >
+                                    <MenuItem value="all">All Departments</MenuItem>
+                                    {departments.map(dept => (
+                                        <MenuItem key={dept.id} value={dept.id}>{dept.name}</MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                            <FormControl size="small" sx={{ minWidth: 150, borderRadius: 1 }}>
+                                <InputLabel>Status</InputLabel>
+                                <Select
+                                    value={statusFilter}
+                                    label="Status"
+                                    onChange={(e) => setStatusFilter(e.target.value)}
+                                    MenuProps={{ PaperProps: { sx: { maxHeight: 300 } } }}
+                                >
+                                    <MenuItem value="all">All Status</MenuItem>
+                                    <MenuItem value="true">Active</MenuItem>
+                                    <MenuItem value="false">Inactive</MenuItem>
+                                </Select>
+                            </FormControl>
+                        </Box>
                         {can('teams', 'create') && (
                             <Button
                                 variant="contained"
@@ -401,51 +430,11 @@ const Teams = () => {
 
             <Card sx={{
                 overflow: 'hidden',
-                boxShadow: isMobile ? 'none' : theme.shadows[2],
-                borderRadius: isMobile ? 0 : 2,
+                borderRadius: isMobile ? 0 : 1,
                 bgcolor: isMobile ? 'transparent' : 'background.paper',
                 border: isMobile ? 'none' : undefined
             }}>
-                <Box sx={{
-                    p: 2,
-                    borderBottom: isMobile ? 'none' : '1px solid',
-                    borderColor: 'divider',
-                    bgcolor: isMobile ? 'transparent' : 'inherit',
-                    display: 'flex',
-                    flexDirection: isMobile ? 'column' : 'row',
-                    justifyContent: 'flex-end', // Align filters to right
-                    alignItems: isMobile ? 'stretch' : 'center',
-                    gap: 2,
-                    flexWrap: 'wrap'
-                }}>
-                    <Box sx={{ display: 'flex', gap: 2, flexDirection: isMobile ? 'column' : 'row', width: isMobile ? '100%' : 'auto' }}>
-                        <FormControl size="small" sx={{ minWidth: isMobile ? '100%' : 150 }}>
-                            <InputLabel>Department</InputLabel>
-                            <Select
-                                value={deptFilter}
-                                label="Department"
-                                onChange={(e) => setDeptFilter(e.target.value)}
-                            >
-                                <MenuItem value="all">All Departments</MenuItem>
-                                {departments.map(dept => (
-                                    <MenuItem key={dept.id} value={dept.id}>{dept.name}</MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                        <FormControl size="small" sx={{ minWidth: isMobile ? '100%' : 150 }}>
-                            <InputLabel>Status</InputLabel>
-                            <Select
-                                value={statusFilter}
-                                label="Status"
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                            >
-                                <MenuItem value="all">All Status</MenuItem>
-                                <MenuItem value="true">Active</MenuItem>
-                                <MenuItem value="false">Inactive</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Box>
-                </Box>
+
 
                 {isMobile ? (
                     // MOBILE: Card List View
@@ -618,6 +607,7 @@ const Teams = () => {
                                     value={formData.department_id}
                                     label="Department"
                                     onChange={(e) => setFormData({ ...formData, department_id: e.target.value })}
+                                    MenuProps={{ PaperProps: { sx: { maxHeight: 300 } } }}
                                 >
                                     {departments.map(dept => (
                                         <MenuItem key={dept.id} value={dept.id}>{dept.name}</MenuItem>
@@ -721,9 +711,14 @@ const Teams = () => {
                 <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Box>
                         Members in {viewMembersTeam?.name}
-                        <Typography variant="caption" display="block" color="text.secondary">
-                            Team Manager: {viewMembersTeam?.manager_name} | Team Lead: {viewMembersTeam?.teamlead_name}
-                        </Typography>
+                        <Box sx={{ display: 'flex', gap: 2, mt: 0.5 }}>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                Manager: <Box component="span" sx={{ color: 'primary.main', fontWeight: 700 }}>{viewMembersTeam?.manager_name || 'N/A'}</Box>
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                                Team Lead: <Box component="span" sx={{ color: 'primary.main', fontWeight: 700 }}>{viewMembersTeam?.teamlead_name || 'N/A'}</Box>
+                            </Typography>
+                        </Box>
                     </Box>
                     <TextField
                         size="small"
@@ -776,6 +771,7 @@ const Teams = () => {
                                             color={params.value ? 'success' : 'error'}
                                             size="small"
                                             variant="outlined"
+                                            sx={{ fontWeight: 600 }}
                                         />
                                     )
                                 },
@@ -787,10 +783,19 @@ const Teams = () => {
                                     getActions: (params) => [
                                         <GridActionsCellItem
                                             key={`remove-${params.id}`}
-                                            icon={<Tooltip title="Remove from Team"><DeleteIcon color="error" fontSize="small" /></Tooltip>}
+                                            icon={<Tooltip title="Remove from Team"><DeleteIcon fontSize="small" /></Tooltip>}
                                             label="Remove"
                                             onClick={() => handleRemoveMember(params.row)}
                                             disabled={isRemoving}
+                                            sx={{
+                                                color: 'error.main',
+                                                border: 1,
+                                                borderColor: 'error.main',
+                                                borderRadius: '50%',
+                                                width: 32,
+                                                height: 32,
+                                                '&:hover': { backgroundColor: 'error.light', color: 'white' }
+                                            }}
                                         />
                                     ]
                                 }

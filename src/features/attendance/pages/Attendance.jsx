@@ -382,7 +382,7 @@ const Attendance = () => {
                 </Stack>
             ) : (
                 // DESKTOP: DataGrid
-                <Card sx={{ overflow: 'hidden', boxShadow: (theme) => theme.shadows[2], borderRadius: 2 }}>
+                <Card sx={{ overflow: 'hidden', borderRadius: 1 }}>
                     <Box sx={{
                         height: 650,
                         width: '100%',

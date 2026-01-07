@@ -218,6 +218,7 @@ const Payroll = () => {
                                             '& .MuiOutlinedInput-root': { borderRadius: 2 },
                                             bgcolor: 'background.paper'
                                         }}
+                                        SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
                                     >
                                         {months.map((m) => (
                                             <MenuItem key={m} value={m}>{m}</MenuItem>
@@ -234,6 +235,7 @@ const Payroll = () => {
                                             '& .MuiOutlinedInput-root': { borderRadius: 2 },
                                             bgcolor: 'background.paper'
                                         }}
+                                        SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
                                     >
                                         {[2024, 2025, 2026].map((y) => (
                                             <MenuItem key={y} value={y}>{y}</MenuItem>
@@ -343,7 +345,7 @@ const Payroll = () => {
                 </Grid>
             </Grid>
 
-            <Card sx={{ borderRadius: 2, boxShadow: (theme) => theme.shadows[2], overflow: 'hidden' }}>
+            <Card sx={{ borderRadius: 1, overflow: 'hidden' }}>
                 <Box sx={{ p: 3, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Typography variant="h6" fontWeight="800">Payout History</Typography>
                     <Typography variant="caption" color="text.secondary" fontWeight={600}>ARCHIVED PAYROLL RUNS</Typography>

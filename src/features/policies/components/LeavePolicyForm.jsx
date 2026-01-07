@@ -202,6 +202,7 @@ const LeavePolicyForm = ({ open, onClose, policy }) => {
                                     label="Category"
                                     value={formData.category}
                                     onChange={handleChange}
+                                    MenuProps={{ PaperProps: { sx: { maxHeight: 300 } } }}
                                 >
                                     <MenuItem value="PAID">Paid</MenuItem>
                                     <MenuItem value="UNPAID">Unpaid</MenuItem>
@@ -247,6 +248,7 @@ const LeavePolicyForm = ({ open, onClose, policy }) => {
                                         value={formData.policy_config.credit_timing}
                                         label="Credit Timing"
                                         onChange={(e) => handleConfigChange(null, 'credit_timing', e.target.value)}
+                                        MenuProps={{ PaperProps: { sx: { maxHeight: 300 } } }}
                                     >
                                         <MenuItem value="monthly">Monthly</MenuItem>
                                         <MenuItem value="annual">Annual</MenuItem>
@@ -262,6 +264,7 @@ const LeavePolicyForm = ({ open, onClose, policy }) => {
                                         value={formData.policy_config.credit_schedule}
                                         label="Credit Schedule"
                                         onChange={(e) => handleConfigChange(null, 'credit_schedule', e.target.value)}
+                                        MenuProps={{ PaperProps: { sx: { maxHeight: 300 } } }}
                                     >
                                         <MenuItem value="month_start">Month Start</MenuItem>
                                         <MenuItem value="month_end">Month End</MenuItem>
@@ -359,6 +362,7 @@ const LeavePolicyForm = ({ open, onClose, policy }) => {
                                     value={formData.policy_config.eligibility.gender_restriction || 'none'}
                                     label="Gender Restriction"
                                     onChange={(e) => handleConfigChange('eligibility', 'gender_restriction', e.target.value)}
+                                    MenuProps={{ PaperProps: { sx: { maxHeight: 300 } } }}
                                 >
                                     <MenuItem value="none">None</MenuItem>
                                     <MenuItem value="male">Male Only</MenuItem>

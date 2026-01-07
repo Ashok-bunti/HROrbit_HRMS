@@ -517,7 +517,7 @@ const Leaves = () => {
                             </Stack>
                         ) : (
                             // DESKTOP: DataGrid
-                            <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 2 }}>
+                            <Card sx={{ overflow: 'hidden', borderRadius: 1 }}>
                                 <Box sx={{
                                     height: 565,
                                     width: '100%',
@@ -609,6 +609,7 @@ const Leaves = () => {
                                         value={formData.leave_type}
                                         onChange={(e) => setFormData({ ...formData, leave_type: e.target.value })}
                                         sx={{ mb: 2 }}
+                                        SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
                                     >
                                         {['Sick', 'Casual', 'Earned', 'Maternity', 'Paternity', 'Unpaid'].map((type) => (
                                             <MenuItem key={type} value={type}>{type} Leave</MenuItem>

@@ -356,6 +356,20 @@ const getTheme = (mode, primaryColor = '#F97316', secondaryColor = '#EC4899') =>
                     },
                 },
             },
+            MuiMenu: {
+                defaultProps: {
+                    PaperProps: {
+                        sx: {
+                            maxHeight: 300,
+                            '&::-webkit-scrollbar': { width: 8 },
+                            '&::-webkit-scrollbar-thumb': {
+                                backgroundColor: alpha(palette.text.secondary, 0.2),
+                                borderRadius: 4,
+                            },
+                        },
+                    },
+                },
+            },
         },
     });
 

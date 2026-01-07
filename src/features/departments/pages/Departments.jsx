@@ -373,6 +373,19 @@ const Departments = () => {
                             }}
                             sx={{ width: { xs: '100%', sm: 300 } }}
                         />
+                        <FormControl size="small" sx={{ minWidth: 150, borderRadius: 1 }}>
+                            <InputLabel>Status</InputLabel>
+                            <Select
+                                value={statusFilter}
+                                label="Status"
+                                onChange={(e) => setStatusFilter(e.target.value)}
+                                MenuProps={{ PaperProps: { sx: { maxHeight: 300 } } }}
+                            >
+                                <MenuItem value="all">All Status</MenuItem>
+                                <MenuItem value="true">Active</MenuItem>
+                                <MenuItem value="false">Inactive</MenuItem>
+                            </Select>
+                        </FormControl>
                         {can('departments', 'create') && (
                             <Button
                                 variant="contained"
@@ -390,20 +403,7 @@ const Departments = () => {
             {isMobile ? (
                 // MOBILE: Card List
                 <Stack spacing={2}>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
-                        <FormControl size="small" fullWidth sx={{ bgcolor: 'background.paper', borderRadius: 1 }}>
-                            <InputLabel>Status</InputLabel>
-                            <Select
-                                value={statusFilter}
-                                label="Status"
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                            >
-                                <MenuItem value="all">All Status</MenuItem>
-                                <MenuItem value="true">Active</MenuItem>
-                                <MenuItem value="false">Inactive</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Box>
+
 
                     {(data?.departments || []).map((dept) => (
                         <Card key={dept.id} sx={{ p: 2, borderRadius: 2, boxShadow: theme.shadows[1] }}>
@@ -479,23 +479,8 @@ const Departments = () => {
                 </Stack>
             ) : (
                 // DESKTOP: DataGrid
-                <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 2 }}>
-                    <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 2 }}>
-                        <Box sx={{ display: 'flex', gap: 2 }}>
-                            <FormControl size="small" sx={{ minWidth: 150 }}>
-                                <InputLabel>Status</InputLabel>
-                                <Select
-                                    value={statusFilter}
-                                    label="Status"
-                                    onChange={(e) => setStatusFilter(e.target.value)}
-                                >
-                                    <MenuItem value="all">All Status</MenuItem>
-                                    <MenuItem value="true">Active</MenuItem>
-                                    <MenuItem value="false">Inactive</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Box>
-                    </Box>
+                <Card sx={{ overflow: 'hidden', borderRadius: 1 }}>
+
                     <Box sx={{
                         height: 565,
                         width: '100%',
@@ -917,11 +902,54 @@ const Departments = () => {
                         width: '100%',
                         '& .MuiDataGrid-root': {
                             border: 'none',
+                            '& .MuiDataGrid-main': {
+                                borderRadius: 0
+                            },
                             '& .MuiDataGrid-cell': {
                                 borderBottom: '1px solid',
                                 borderColor: 'divider',
-                                '&:focus': { outline: 'none' },
-                                '&:focus-within': { outline: 'none' }
+                                fontSize: '0.875rem',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
+                            },
+                            '& .MuiDataGrid-columnHeader': {
+                                backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
+                                color: 'text.secondary',
+                                fontWeight: 700,
+                                fontSize: '0.75rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
+                            },
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: (theme) => theme.palette.action.hover,
+                            },
+                            '& .MuiDataGrid-columnSeparator': {
+                                display: 'none'
+                            },
+                            // Custom Scrollbar
+                            '& ::-webkit-scrollbar': {
+                                width: 8,
+                                height: 8,
+                            },
+                            '& ::-webkit-scrollbar-track': {
+                                backgroundColor: 'transparent',
+                            },
+                            '& ::-webkit-scrollbar-thumb': {
+                                backgroundColor: (theme) => theme.palette.divider,
+                                borderRadius: 4,
+                                '&:hover': {
+                                    backgroundColor: (theme) => theme.palette.text.disabled,
+                                },
                             },
                         }
                     }}>
@@ -935,23 +963,39 @@ const Departments = () => {
                                     field: 'name',
                                     headerName: 'TEAM NAME',
                                     flex: 1,
+                                    align: 'center',
+                                    headerAlign: 'center',
                                     renderCell: (params) => (
-                                        <Typography variant="body2" fontWeight={600} color="primary.main">
-                                            {params.value}
-                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                            <Typography variant="body2" fontWeight={600} color="primary.main">
+                                                {params.value}
+                                            </Typography>
+                                        </Box>
                                     )
                                 },
                                 {
                                     field: 'manager_name',
                                     headerName: 'MANAGER',
                                     flex: 1,
-                                    renderCell: (params) => params.value || '-'
+                                    align: 'center',
+                                    headerAlign: 'center',
+                                    renderCell: (params) => (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                            {params.value || '-'}
+                                        </Box>
+                                    )
                                 },
                                 {
                                     field: 'teamlead_name',
                                     headerName: 'TEAM LEAD',
                                     flex: 1,
-                                    renderCell: (params) => params.value || '-'
+                                    align: 'center',
+                                    headerAlign: 'center',
+                                    renderCell: (params) => (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                            {params.value || '-'}
+                                        </Box>
+                                    )
                                 },
                                 {
                                     field: 'employee_count',
@@ -960,17 +1004,19 @@ const Departments = () => {
                                     align: 'center',
                                     headerAlign: 'center',
                                     renderCell: (params) => (
-                                        <Button
-                                            size="small"
-                                            variant="text"
-                                            onClick={() => {
-                                                setSelectedTeamForMembers(params.row);
-                                                setTeamMembersOpen(true);
-                                            }}
-                                            sx={{ minWidth: 0, textDecoration: 'underline' }}
-                                        >
-                                            {params.value ?? 0}
-                                        </Button>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                            <Button
+                                                size="small"
+                                                variant="text"
+                                                onClick={() => {
+                                                    setSelectedTeamForMembers(params.row);
+                                                    setTeamMembersOpen(true);
+                                                }}
+                                                sx={{ minWidth: 0, textDecoration: 'underline' }}
+                                            >
+                                                {params.value ?? 0}
+                                            </Button>
+                                        </Box>
                                     )
                                 },
                                 {
@@ -1013,7 +1059,7 @@ const Departments = () => {
                     setTeamMemberSearchTerm('');
                     setSelectedTeamForMembers(null);
                 }}
-                maxWidth="sm"
+                maxWidth="md"
                 fullWidth
             >
                 <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
@@ -1044,11 +1090,54 @@ const Departments = () => {
                         width: '100%',
                         '& .MuiDataGrid-root': {
                             border: 'none',
+                            '& .MuiDataGrid-main': {
+                                borderRadius: 0
+                            },
                             '& .MuiDataGrid-cell': {
                                 borderBottom: '1px solid',
                                 borderColor: 'divider',
-                                '&:focus': { outline: 'none' },
-                                '&:focus-within': { outline: 'none' }
+                                fontSize: '0.875rem',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
+                            },
+                            '& .MuiDataGrid-columnHeader': {
+                                backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
+                                color: 'text.secondary',
+                                fontWeight: 700,
+                                fontSize: '0.75rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                '&:focus': {
+                                    outline: 'none'
+                                },
+                                '&:focus-within': {
+                                    outline: 'none'
+                                }
+                            },
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: (theme) => theme.palette.action.hover,
+                            },
+                            '& .MuiDataGrid-columnSeparator': {
+                                display: 'none'
+                            },
+                            // Custom Scrollbar
+                            '& ::-webkit-scrollbar': {
+                                width: 8,
+                                height: 8,
+                            },
+                            '& ::-webkit-scrollbar-track': {
+                                backgroundColor: 'transparent',
+                            },
+                            '& ::-webkit-scrollbar-thumb': {
+                                backgroundColor: (theme) => theme.palette.divider,
+                                borderRadius: 4,
+                                '&:hover': {
+                                    backgroundColor: (theme) => theme.palette.text.disabled,
+                                },
                             },
                         }
                     }}>
@@ -1064,42 +1153,69 @@ const Departments = () => {
                                     field: 'employee_code',
                                     headerName: 'EMP CODE',
                                     width: 120,
+                                    align: 'center',
+                                    headerAlign: 'center',
                                     renderCell: (params) => (
-                                        <Typography variant="body2" fontWeight={700} color="primary.main">
-                                            {params.value}
-                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                            <Typography variant="body2" fontWeight={700} color="primary.main">
+                                                {params.value}
+                                            </Typography>
+                                        </Box>
                                     )
                                 },
                                 {
                                     field: 'full_name',
                                     headerName: 'NAME',
                                     flex: 1,
+                                    align: 'center',
+                                    headerAlign: 'center',
                                     renderCell: (params) => (
-                                        <Typography variant="body2" fontWeight={600}>
-                                            {params.value || `${params.row.first_name} ${params.row.last_name}`}
-                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                            <Typography variant="body2" fontWeight={600}>
+                                                {params.value || `${params.row.first_name} ${params.row.last_name}`}
+                                            </Typography>
+                                        </Box>
                                     )
                                 },
-                                { field: 'email', headerName: 'EMAIL', flex: 1 },
+                                {
+                                    field: 'email',
+                                    headerName: 'EMAIL',
+                                    flex: 1,
+                                    align: 'center',
+                                    headerAlign: 'center',
+                                    renderCell: (params) => (
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                            {params.value}
+                                        </Box>
+                                    )
+                                },
                                 {
                                     field: 'position',
                                     headerName: 'POSITION',
                                     width: 150,
+                                    align: 'center',
+                                    headerAlign: 'center',
                                     renderCell: (params) => (
-                                        <Chip label={params.value || 'N/A'} size="small" variant="outlined" />
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                            <Chip label={params.value || 'N/A'} size="small" variant="outlined" />
+                                        </Box>
                                     )
                                 },
                                 {
                                     field: 'is_active',
                                     headerName: 'STATUS',
                                     width: 100,
+                                    align: 'center',
+                                    headerAlign: 'center',
                                     renderCell: (params) => (
-                                        <Chip
-                                            label={params.value ? 'Active' : 'Inactive'}
-                                            color={params.value ? 'success' : 'error'}
-                                            size="small"
-                                            variant="outlined"
-                                        />
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                                            <Chip
+                                                label={params.value ? 'Active' : 'Inactive'}
+                                                color={params.value ? 'success' : 'error'}
+                                                size="small"
+                                                variant="outlined"
+                                            />
+                                        </Box>
                                     )
                                 }
                             ]}

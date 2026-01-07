@@ -308,6 +308,7 @@ const UserManagement = () => {
                         borderRadius: 2,
                         '& fieldset': { border: 'none' }
                     }}
+                    MenuProps={{ PaperProps: { sx: { maxHeight: 300 } } }}
                 >
                     {roles.map((role) => (
                         <MenuItem key={role.id} value={role.name} sx={{ fontSize: '0.75rem', fontWeight: 600 }}>
@@ -601,8 +602,7 @@ const UserManagement = () => {
                 // DESKTOP: DataGrid
                 <Card sx={{
                     overflow: 'hidden',
-                    boxShadow: theme.shadows[2],
-                    borderRadius: 2,
+                    borderRadius: 1,
                     bgcolor: 'background.paper'
                 }}>
                     <Box sx={{
@@ -782,6 +782,7 @@ const UserManagement = () => {
                             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                             label="Role"
                             disabled={rolesLoading}
+                            MenuProps={{ PaperProps: { sx: { maxHeight: 300 } } }}
                         >
                             {roles.map((role) => (
                                 <MenuItem key={role.id} value={role.name}>

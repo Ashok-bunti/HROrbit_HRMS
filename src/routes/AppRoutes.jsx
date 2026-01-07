@@ -31,7 +31,7 @@ import EmployeeDashboard from '../features/dashboard/pages/EmployeeDashboard';
 import EmployeeEngagement from '../features/engagement/pages/EmployeeEngagement';
 import EmployeeProfile from '../features/employees/pages/EmployeeProfile';
 import CompanyCalendar from '../features/calendar/pages/CompanyCalendar';
-import HolidayCalendar from '../features/calendar/pages/HolidayCalendar';
+import RosterPage from '../features/roster/pages/RosterPage';
 
 
 const AppRoutes = () => {
@@ -157,8 +157,15 @@ const AppRoutes = () => {
                     }
                 />
 
-                <Route path="calendar" element={<CompanyCalendar />} />
-                <Route path="holidays" element={<HolidayCalendar />} />
+                <Route path="holidays" element={<CompanyCalendar />} />
+                <Route
+                    path="roster"
+                    element={
+                        <PrivateRoute>
+                            <RosterPage />
+                        </PrivateRoute>
+                    }
+                />
 
                 <Route path="settings/security" element={<MFASetup />} />
 

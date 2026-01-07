@@ -6,6 +6,7 @@ import {
     CardContent,
     Typography,
     TextField,
+    MenuItem,
     Button,
     Avatar,
     Chip,
@@ -763,19 +764,19 @@ const EmployeeProfile = () => {
                                     </Box>
 
                                     <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' }, gap: 2, mb: 2 }}>
-                                        <TextField fullWidth select label="Gender" name="gender" value={formData.gender} onChange={handleChange} disabled={!isEditing} size="small" SelectProps={{ native: true }}>
-                                            <option value=""></option>
-                                            <option value="Male">Male</option>
-                                            <option value="Female">Female</option>
-                                            <option value="Other">Other</option>
+                                        <TextField fullWidth select label="Gender" name="gender" value={formData.gender} onChange={handleChange} disabled={!isEditing} size="small" SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}>
+                                            <MenuItem value="">None</MenuItem>
+                                            <MenuItem value="Male">Male</MenuItem>
+                                            <MenuItem value="Female">Female</MenuItem>
+                                            <MenuItem value="Other">Other</MenuItem>
                                         </TextField>
-                                        <TextField fullWidth select label="Blood Group" name="blood_group" value={formData.blood_group} onChange={handleChange} disabled={!isEditing} size="small" SelectProps={{ native: true }}>
-                                            <option value=""></option>
-                                            {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(bg => <option key={bg} value={bg}>{bg}</option>)}
+                                        <TextField fullWidth select label="Blood Group" name="blood_group" value={formData.blood_group} onChange={handleChange} disabled={!isEditing} size="small" SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}>
+                                            <MenuItem value="">None</MenuItem>
+                                            {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(bg => <MenuItem key={bg} value={bg}>{bg}</MenuItem>)}
                                         </TextField>
-                                        <TextField fullWidth select label="Marital Status" name="marital_status" value={formData.marital_status} onChange={handleChange} disabled={!isEditing} size="small" SelectProps={{ native: true }}>
-                                            <option value=""></option>
-                                            {['Single', 'Married', 'Divorced', 'Widowed'].map(s => <option key={s} value={s}>{s}</option>)}
+                                        <TextField fullWidth select label="Marital Status" name="marital_status" value={formData.marital_status} onChange={handleChange} disabled={!isEditing} size="small" SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}>
+                                            <MenuItem value="">None</MenuItem>
+                                            {['Single', 'Married', 'Divorced', 'Widowed'].map(s => <MenuItem key={s} value={s}>{s}</MenuItem>)}
                                         </TextField>
                                     </Box>
 

@@ -773,8 +773,7 @@ const Employees = () => {
                 // DESKTOP: DataGrid
                 <Card sx={{
                     overflow: 'hidden',
-                    borderRadius: 2,
-                    boxShadow: (theme) => theme.shadows[2],
+                    borderRadius: 1,
                     bgcolor: 'background.paper'
                 }}>
                     <Box sx={{
@@ -998,13 +997,13 @@ const Employees = () => {
                                         value={formData.employment_type}
                                         onChange={(e) => setFormData({ ...formData, employment_type: e.target.value })}
                                         size="small"
-                                        SelectProps={{ native: true }}
+                                        SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
                                     >
-                                        <option value=""></option>
-                                        <option value="Full-time">Full-time</option>
-                                        <option value="Part-time">Part-time</option>
-                                        <option value="Contract">Contract</option>
-                                        <option value="Intern">Intern</option>
+                                        <MenuItem value="">None</MenuItem>
+                                        <MenuItem value="Full-time">Full-time</MenuItem>
+                                        <MenuItem value="Part-time">Part-time</MenuItem>
+                                        <MenuItem value="Contract">Contract</MenuItem>
+                                        <MenuItem value="Intern">Intern</MenuItem>
                                     </TextField>
                                     <TextField
                                         select
@@ -1013,12 +1012,12 @@ const Employees = () => {
                                         value={formData.role}
                                         onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                         size="small"
-                                        SelectProps={{ native: true }}
+                                        SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
                                     >
                                         {roles.map((role) => (
-                                            <option key={role.id} value={role.name.toLowerCase()}>
+                                            <MenuItem key={role.id} value={role.name.toLowerCase()}>
                                                 {role.name}
-                                            </option>
+                                            </MenuItem>
                                         ))}
                                     </TextField>
                                 </Box>
@@ -1089,12 +1088,12 @@ const Employees = () => {
                                         value={formData.gender}
                                         onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
                                         size="small"
-                                        SelectProps={{ native: true }}
+                                        SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
                                     >
-                                        <option value=""></option>
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                        <option value="Other">Other</option>
+                                        <MenuItem value="">None</MenuItem>
+                                        <MenuItem value="Male">Male</MenuItem>
+                                        <MenuItem value="Female">Female</MenuItem>
+                                        <MenuItem value="Other">Other</MenuItem>
                                     </TextField>
                                     <TextField
                                         select
@@ -1103,11 +1102,11 @@ const Employees = () => {
                                         value={formData.blood_group}
                                         onChange={(e) => setFormData({ ...formData, blood_group: e.target.value })}
                                         size="small"
-                                        SelectProps={{ native: true }}
+                                        SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
                                     >
-                                        <option value=""></option>
+                                        <MenuItem value="">None</MenuItem>
                                         {['A+', 'A-', 'B+', 'B-', 'O+', 'O-', 'AB+', 'AB-'].map(bg => (
-                                            <option key={bg} value={bg}>{bg}</option>
+                                            <MenuItem key={bg} value={bg}>{bg}</MenuItem>
                                         ))}
                                     </TextField>
                                     <TextField

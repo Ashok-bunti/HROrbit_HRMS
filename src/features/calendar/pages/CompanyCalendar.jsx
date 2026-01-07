@@ -1,10 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import FullCalendar from '@fullcalendar/react';
-import dayGridPlugin from '@fullcalendar/daygrid';
-import timeGridPlugin from '@fullcalendar/timegrid';
-import interactionPlugin from '@fullcalendar/interaction';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
+    Grid,
     Paper,
     Typography,
     Button,
@@ -17,349 +14,596 @@ import {
     MenuItem,
     Chip,
     useTheme,
-    Divider,
-    List,
-    ListItem,
-    ListItemIcon,
-    ListItemText,
-    Checkbox,
-    Avatar,
-    Tooltip,
     alpha,
-    Fade,
-    Zoom
+    Select,
+    FormControl,
+    InputLabel,
+    Tooltip,
+    InputAdornment,
+    CircularProgress,
+    Alert
 } from '@mui/material';
 import {
     Add as AddIcon,
+    Edit as EditIcon,
+    Delete as DeleteIcon,
     ChevronLeft,
     ChevronRight,
-    Today as TodayIcon,
-    EventAvailable as HolidayIcon,
-    PersonOff as LeaveIcon,
-    Groups as MeetingIcon,
-    MoreVert as MoreIcon,
-    FilterList as FilterIcon,
-    InfoOutlined as InfoIcon
+    EventAvailable as EventIcon,
+    Search
 } from '@mui/icons-material';
-import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { useGetAllLeavesQuery } from '../../leaves/store/leaveApi';
 import PageHeader from '../../../components/common/PageHeader';
-import '../styles/calendar.css';
+import CustomSnackbar from '../../../components/common/CustomSnackbar';
+import { usePermissions } from '../../../hooks/usePermissions';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../auth/store/authSlice';
+import { useGetEmployeeByUserIdQuery } from '../../employees/store/employeeApi';
+import {
+    useGetHolidaysQuery,
+    useCreateHolidayMutation,
+    useUpdateHolidayMutation,
+    useDeleteHolidayMutation
+} from '../store/calendarApi';
 
-const CompanyCalendar = () => {
+const HolidayCalendar = () => {
     const theme = useTheme();
-    const calendarRef = useRef(null);
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const { userRole } = usePermissions();
+    const isAdmin = userRole === 'admin' || userRole === 'hr';
+    const user = useSelector(selectCurrentUser);
+
+    const { data: employeeData } = useGetEmployeeByUserIdQuery(user?.id, {
+        skip: !user?.id
+    });
+
+    const employeeInfo = employeeData?.employee || {};
+
+    const currentYear = new Date().getFullYear();
+    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+    // API Hooks
+    const { data: holidaysData, isLoading, error } = useGetHolidaysQuery({ year: selectedYear });
+    const [createHoliday] = useCreateHolidayMutation();
+    const [updateHoliday] = useUpdateHolidayMutation();
+    const [deleteHoliday] = useDeleteHolidayMutation();
+
+    const holidays = holidaysData?.events || [];
+
+    // Generate dynamic years (e.g., 5 years back and 5 years forward)
+    const availableYears = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
+
     const [openDialog, setOpenDialog] = useState(false);
-    const [selectedDate, setSelectedDate] = useState(null);
-    const [eventData, setEventData] = useState({
+    const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
+    const [holidayToDelete, setHolidayToDelete] = useState(null);
+    const [editingHoliday, setEditingHoliday] = useState(null);
+
+    // Form state matching backend schema
+    const [holidayForm, setHolidayForm] = useState({
         title: '',
+        date: '',
+        leave_type: 'NATIONAL_HOLIDAY',
         description: '',
-        type: 'meeting',
-        start_time: '09:00',
-        end_time: '10:00'
+        is_holiday: true
     });
 
-    const [filters, setFilters] = useState({
-        holidays: true,
-        leaves: true,
-        events: true
-    });
 
-    const { data: leavesData } = useGetAllLeavesQuery();
 
-    const holidays = [
-        { id: 'h1', title: 'New Year Day', start: '2026-01-01', className: 'event-holiday', extendedProps: { type: 'holiday' } },
-        { id: 'h2', title: 'Republic Day', start: '2026-01-26', className: 'event-holiday', extendedProps: { type: 'holiday' } },
-        { id: 'h3', title: 'Pongal', start: '2026-01-14', className: 'event-holiday', extendedProps: { type: 'holiday' } },
-        { id: 'h4', title: 'Pongal Holiday', start: '2026-01-15', className: 'event-holiday', extendedProps: { type: 'holiday' } },
+    const months = [
+        "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+        "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
     ];
 
-    const [events, setEvents] = useState([]);
+    const getHolidaysForMonth = (monthIndex) => {
+        return holidays.filter(h => {
+            const date = new Date(h.date);
+            const matchesSearch = h.title.toLowerCase().includes(searchTerm.toLowerCase());
+            return date.getMonth() === monthIndex && date.getFullYear() === selectedYear && matchesSearch;
+        }).sort((a, b) => new Date(a.date) - new Date(b.date));
+    };
 
-    useEffect(() => {
-        const calendarEvents = [];
-        if (filters.holidays) calendarEvents.push(...holidays);
-        if (filters.leaves && leavesData?.leaves) {
-            const leaveEvents = leavesData.leaves
-                .filter(l => l.status === 'Approved')
-                .map(l => ({
-                    id: `leave-${l.id}`,
-                    title: `${l.employee_name}`,
-                    start: l.start_date,
-                    end: l.end_date,
-                    className: 'event-leave',
-                    allDay: true,
-                    extendedProps: { type: 'leave', leaveType: l.leave_type }
-                }));
-            calendarEvents.push(...leaveEvents);
+    const handleOpenDialog = (holiday = null) => {
+        if (holiday) {
+            setEditingHoliday(holiday);
+            // Convert date to YYYY-MM-DD for input
+            const dateStr = new Date(holiday.date).toISOString().split('T')[0];
+            setHolidayForm({
+                title: holiday.title,
+                date: dateStr,
+                leave_type: holiday.leave_type || 'NATIONAL_HOLIDAY',
+                description: holiday.description || '',
+                is_holiday: holiday.is_holiday
+            });
+        } else {
+            setEditingHoliday(null);
+            setHolidayForm({
+                title: '',
+                date: '',
+                leave_type: 'NATIONAL_HOLIDAY',
+                description: '',
+                is_holiday: true
+            });
         }
-        setEvents(calendarEvents);
-    }, [filters, leavesData]);
-
-    const handleDateSelect = (selectInfo) => {
-        setSelectedDate(selectInfo.startStr);
         setOpenDialog(true);
     };
 
-    const handleCreateEvent = () => {
-        const typeClass = eventData.type === 'meeting' ? 'event-meeting' :
-            eventData.type === 'holiday' ? 'event-holiday' : 'event-general';
-        const newEvent = {
-            id: Date.now().toString(),
-            title: eventData.title,
-            start: selectedDate,
-            className: typeClass,
-            extendedProps: { ...eventData }
-        };
-        setEvents(prev => [...prev, newEvent]);
-        setOpenDialog(false);
-        setEventData({ title: '', description: '', type: 'meeting', start_time: '09:00', end_time: '10:00' });
+    const handleSaveHoliday = async () => {
+        try {
+            if (editingHoliday) {
+                await updateHoliday({ id: editingHoliday.id, ...holidayForm }).unwrap();
+                setSnackbar({ open: true, message: 'Holiday updated successfully', severity: 'success' });
+            } else {
+                await createHoliday(holidayForm).unwrap();
+                setSnackbar({ open: true, message: 'Holiday created successfully', severity: 'success' });
+            }
+            setOpenDialog(false);
+        } catch (err) {
+            console.error("Failed to save holiday:", err);
+            setSnackbar({ open: true, message: err?.data?.error || 'Failed to save holiday', severity: 'error' });
+        }
     };
 
-    const renderEventContent = (eventInfo) => {
-        const { type } = eventInfo.event.extendedProps;
-        return (
-            <div className={`calendar-event ${eventInfo.event.classNames[0]}`}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'currentColor' }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {eventInfo.event.title}
-                </span>
-            </div>
-        );
+    const handleDeleteHoliday = (holiday) => {
+        setHolidayToDelete(holiday);
+        setOpenDeleteDialog(true);
+    };
+
+    const confirmDelete = async () => {
+        if (holidayToDelete) {
+            try {
+                await deleteHoliday(holidayToDelete.id).unwrap();
+                setSnackbar({ open: true, message: 'Holiday deleted successfully', severity: 'success' });
+                setOpenDeleteDialog(false);
+                setHolidayToDelete(null);
+            } catch (err) {
+                console.error("Failed to delete holiday:", err);
+                setSnackbar({ open: true, message: err?.data?.error || 'Failed to delete holiday', severity: 'error' });
+            }
+        }
+    };
+
+
+
+    const getLeaveTypeLabel = (type) => {
+        switch (type) {
+            case 'NATIONAL_HOLIDAY': return 'Mandatory';
+            case 'RESTRICTED_HOLIDAY': return 'Optional';
+            case 'FUNCTIONAL_HOLIDAY': return 'Functional';
+            default: return type;
+        }
+    };
+
+    const isOptional = (type) => type === 'RESTRICTED_HOLIDAY';
+
+    const getLeaveTypeColor = (type) => {
+        if (type === 'RESTRICTED_HOLIDAY') return 'warning.main';
+        return 'error.main'; // Mandatory/National/Functional
+    };
+
+    // Helper function to check if a holiday date has passed
+    const isHolidayPast = (holidayDate) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to start of day
+        const holiday = new Date(holidayDate);
+        holiday.setHours(0, 0, 0, 0);
+        return holiday < today;
     };
 
     return (
-        <LocalizationProvider dateAdapter={AdapterDateFns}>
-            <Box sx={{
-                minHeight: '100vh',
-                bgcolor: 'background.default',
-                '--calendar-bg': theme.palette.background.paper,
-                '--calendar-header-bg': theme.palette.mode === 'dark' ? alpha(theme.palette.background.default, 0.5) : '#f8fafc',
-                '--calendar-border': theme.palette.divider,
-                '--calendar-text-main': theme.palette.text.primary,
-                '--calendar-text-muted': theme.palette.text.secondary,
-                '--calendar-day-hover': theme.palette.action.hover,
-                '--calendar-button-group-bg': theme.palette.action.selected,
-                '--calendar-button-active-bg': theme.palette.background.paper,
-                '--calendar-sidebar-bg': theme.palette.mode === 'dark' ? alpha(theme.palette.background.paper, 0.5) : '#f8fafc',
-            }}>
-                <PageHeader
-                    title="Company Calendar"
-                    subtitle="Sync up with your team's schedule"
-                    action={
-                        <Button
-                            variant="contained"
-                            startIcon={<AddIcon />}
-                            onClick={() => {
-                                setSelectedDate(new Date().toISOString().split('T')[0]);
-                                setOpenDialog(true);
+        <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+            <PageHeader
+                title="Holiday Calendar"
+                subtitle="View and manage company holidays"
+                action={
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'center' }}>
+                        <TextField
+                            placeholder="Search holidays..."
+                            size="small"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <Search fontSize="small" sx={{ color: 'text.secondary' }} />
+                                    </InputAdornment>
+                                ),
+                                sx: { bgcolor: 'background.paper', borderRadius: 2 }
                             }}
-                            sx={{
-                                borderRadius: '12px',
-                                px: 3,
-                                py: 1,
-                                textTransform: 'none',
-                                fontWeight: 600,
-                                boxShadow: '0 4px 12px ' + alpha(theme.palette.primary.main, 0.3),
-                                '&:hover': {
-                                    boxShadow: '0 6px 16px ' + alpha(theme.palette.primary.main, 0.4),
-                                }
-                            }}
-                        >
-                            New Event
-                        </Button>
-                    }
-                />
-
-                <Box sx={{ display: 'flex', mt: 3, gap: 3, height: 'calc(100vh - 180px)' }}>
-                    {/* Left Sidebar - Premium Layout */}
-                    <Box sx={{ width: 300, display: { xs: 'none', lg: 'flex' }, flexDirection: 'column', gap: 3 }}>
-                        <Paper sx={{ p: 2, borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid', borderColor: 'divider', bgcolor: 'var(--calendar-bg)' }}>
-                            <DatePicker
-                                value={currentDate}
-                                onChange={(newValue) => {
-                                    setCurrentDate(newValue);
-                                    calendarRef.current?.getApi().gotoDate(newValue);
-                                }}
-                                slots={{ toolbar: () => null }}
+                            sx={{ width: { xs: '100%', sm: 300 } }}
+                        />
+                        <FormControl size="small" sx={{ minWidth: 120 }}>
+                            <Select
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(e.target.value)}
                                 sx={{
-                                    '& .MuiOutlinedInput-root': { display: 'none' },
-                                    '& .MuiDateCalendar-root': { width: '100%' }
+                                    borderRadius: '12px',
+                                    bgcolor: 'background.paper',
+                                    '& .MuiSelect-select': { py: 1 }
                                 }}
-                            />
-                        </Paper>
-
-                        <Paper sx={{ p: 3, borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)', border: '1px solid', borderColor: 'divider', flex: 1, bgcolor: 'var(--calendar-bg)' }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, justifyContent: 'space-between' }}>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: 'text.primary', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                                    Filters
-                                </Typography>
-                                <FilterIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
-                            </Box>
-
-                            <List sx={{ '& .MuiListItem-root': { px: 0, py: 0.5 } }}>
-                                {[
-                                    { id: 'holidays', label: 'Company Holidays', color: '#ef4444', icon: <HolidayIcon /> },
-                                    { id: 'leaves', label: 'Employee Leaves', color: '#8b5cf6', icon: <LeaveIcon /> },
-                                    { id: 'events', label: 'Meetings & Events', color: '#10b981', icon: <MeetingIcon /> }
-                                ].map((filter) => (
-                                    <ListItem key={filter.id}>
-                                        <Checkbox
-                                            size="small"
-                                            checked={filters[filter.id]}
-                                            onChange={() => setFilters(prev => ({ ...prev, [filter.id]: !prev[filter.id] }))}
-                                            sx={{
-                                                color: filter.color,
-                                                '&.Mui-checked': { color: filter.color },
-                                                p: 0.5,
-                                                mr: 1
-                                            }}
-                                        />
-                                        <ListItemText
-                                            primary={filter.label}
-                                            primaryTypographyProps={{
-                                                variant: 'body2',
-                                                sx: { fontWeight: 600, color: 'text.primary' }
-                                            }}
-                                        />
-                                    </ListItem>
+                                MenuProps={{ PaperProps: { sx: { maxHeight: 300 } } }}
+                            >
+                                {availableYears.map(year => (
+                                    <MenuItem key={year} value={year}>{year}</MenuItem>
                                 ))}
-                            </List>
-
-                            <Divider sx={{ my: 3 }} />
-
-                            <Box sx={{ p: 2, bgcolor: 'action.hover', borderRadius: '16px', border: '1px dashed', borderColor: 'divider' }}>
-                                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <InfoIcon sx={{ fontSize: 14 }} />
-                                    Tip: Click on any date to create a new event.
-                                </Typography>
-                            </Box>
-                        </Paper>
-                    </Box>
-
-                    {/* Main Content Area */}
-                    <Box sx={{ flex: 1, height: '100%' }}>
-                        <Paper className="calendar-container" sx={{ height: '100%', borderRadius: '32px', border: '1px solid', borderColor: 'divider', p: 1, bgcolor: 'var(--calendar-bg)' }}>
-                            <FullCalendar
-                                ref={calendarRef}
-                                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                                initialView="dayGridMonth"
-                                eventContent={renderEventContent}
-                                headerToolbar={{
-                                    left: 'prev today next',
-                                    center: 'title',
-                                    right: 'dayGridMonth,timeGridWeek,timeGridDay'
+                            </Select>
+                        </FormControl>
+                        {isAdmin && (
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={() => handleOpenDialog()}
+                                sx={{
+                                    borderRadius: '12px',
+                                    px: 3,
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    boxShadow: '0 4px 12px ' + alpha(theme.palette.primary.main, 0.3),
                                 }}
-                                events={events}
-                                editable={true}
-                                selectable={true}
-                                selectMirror={true}
-                                dayMaxEvents={3}
-                                weekends={true}
-                                select={handleDateSelect}
-                                height="100%"
-                                themeSystem="standard"
-                            />
-                        </Paper>
+                            >
+                                Add Holiday
+                            </Button>
+                        )}
                     </Box>
+                }
+            />
+
+            {isLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                    <CircularProgress />
                 </Box>
-
-                {/* Modern Dialog */}
-                <Dialog
-                    open={openDialog}
-                    onClose={() => setOpenDialog(false)}
-                    TransitionComponent={Zoom}
-                    maxWidth="sm"
-                    fullWidth
-                    PaperProps={{
-                        sx: { borderRadius: '24px', p: 1 }
-                    }}
-                >
-                    <DialogTitle sx={{ fontWeight: 800, fontSize: '1.25rem', pb: 0 }}>
-                        Create New Event
-                        <Typography variant="body2" color="text.secondary">
-                            Schedule a new activity for {selectedDate}
-                        </Typography>
-                    </DialogTitle>
-                    <DialogContent>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 2 }}>
-                            <TextField
-                                fullWidth
-                                placeholder="Event Title (e.g., Weekly Sync)"
-                                variant="outlined"
-                                value={eventData.title}
-                                onChange={(e) => setEventData({ ...eventData, title: e.target.value })}
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                            />
-
-                            <Box sx={{ display: 'flex', gap: 2 }}>
-                                <TextField
-                                    select
-                                    fullWidth
-                                    label="Event Category"
-                                    value={eventData.type}
-                                    onChange={(e) => setEventData({ ...eventData, type: e.target.value })}
-                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+            ) : error ? (
+                <Box sx={{ p: 4 }}>
+                    <Alert severity="error">Failed to load holidays: {error.data?.error || 'Unknown error'}</Alert>
+                </Box>
+            ) : (
+                <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: {
+                        xs: '1fr',
+                        sm: 'repeat(2, 1fr)',
+                        md: 'repeat(4, 1fr)',
+                        lg: 'repeat(4, 1fr)',
+                        xl: 'repeat(4, 1fr)'
+                    },
+                    gap: 3,
+                    mt: 3
+                }}>
+                    {months.map((month, index) => {
+                        const monthHolidays = getHolidaysForMonth(index);
+                        return (
+                            <Paper
+                                key={month}
+                                sx={{
+                                    p: 3,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    minHeight: 220,
+                                    borderRadius: '24px',
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.02)',
+                                    border: '1px solid',
+                                    borderColor: alpha(theme.palette.divider, 0.4),
+                                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                    bgcolor: 'background.paper',
+                                    '&:hover': {
+                                        boxShadow: '0 12px 40px rgba(0,0,0,0.06)',
+                                        borderColor: theme.palette.primary.main,
+                                        transform: 'translateY(-4px)'
+                                    }
+                                }}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 800,
+                                        color: 'text.secondary',
+                                        letterSpacing: '0.1em',
+                                        mb: 2.5,
+                                        display: 'block',
+                                        opacity: 0.8
+                                    }}
                                 >
-                                    <MenuItem value="meeting">
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <Box sx={{ w: 8, h: 8, borderRadius: '50%', bgcolor: '#10b981' }} /> Meeting
+                                    {month} {selectedYear}
+                                </Typography>
+
+                                <Box sx={{
+                                    flex: 1,
+                                    overflowY: monthHolidays.length > 0 ? 'auto' : 'hidden',
+                                    pr: monthHolidays.length > 0 ? 1 : 0,
+                                    display: 'flex',
+                                    flexDirection: 'column'
+                                }}>
+                                    {monthHolidays.length > 0 ? (
+                                        monthHolidays.map((holiday) => {
+                                            const holidayDate = new Date(holiday.date);
+                                            const day = holidayDate.getDate().toString().padStart(2, '0');
+                                            const weekday = holidayDate.toLocaleDateString('en-US', { weekday: 'short' });
+                                            const niceLabel = getLeaveTypeLabel(holiday.leave_type);
+
+                                            return (
+                                                <Box
+                                                    key={holiday.id}
+                                                    sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 2,
+                                                        mb: 1.5,
+                                                        p: 1.5,
+                                                        position: 'relative',
+                                                        bgcolor: alpha(theme.palette.primary.main, 0.05),
+                                                        borderRadius: '16px',
+                                                        border: '1px dashed',
+                                                        borderColor: alpha(theme.palette.primary.main, 0.2),
+                                                        transition: 'all 0.2s ease'
+                                                    }}
+                                                >
+                                                    <Box sx={{
+                                                        minWidth: 42,
+                                                        height: 42,
+                                                        display: 'flex',
+                                                        flexDirection: 'column',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        bgcolor: 'background.paper',
+                                                        borderRadius: '10px',
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                                                        border: '1px solid',
+                                                        borderColor: alpha(theme.palette.divider, 0.5)
+                                                    }}>
+                                                        <Typography variant="body2" sx={{ fontWeight: 800, mb: 0, lineHeight: 1, color: 'primary.main' }}>
+                                                            {day}
+                                                        </Typography>
+                                                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6rem', fontWeight: 700, textTransform: 'uppercase' }}>
+                                                            {weekday}
+                                                        </Typography>
+                                                    </Box>
+
+                                                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.25, flexWrap: 'wrap' }}>
+                                                            <Typography
+                                                                variant="subtitle2"
+                                                                sx={{
+                                                                    fontWeight: 600,
+                                                                    color: 'text.primary',
+                                                                    fontSize: '0.9rem',
+                                                                    lineHeight: 1.2
+                                                                }}
+                                                            >
+                                                                {holiday.title}
+                                                            </Typography>
+
+                                                            <Box sx={{ width: '1px', height: '14px', bgcolor: 'divider' }} />
+
+                                                            <Typography
+                                                                variant="caption"
+                                                                sx={{
+                                                                    color: getLeaveTypeColor(holiday.leave_type),
+                                                                    fontSize: '0.75rem',
+                                                                    fontWeight: 600
+                                                                }}
+                                                            >
+                                                                {niceLabel}
+                                                            </Typography>
+                                                        </Box>
+
+                                                        {holiday.description && (
+                                                            <Typography
+                                                                variant="body2"
+                                                                sx={{
+                                                                    color: 'text.secondary',
+                                                                    fontSize: '0.8rem',
+                                                                    lineHeight: 1.4,
+                                                                    display: '-webkit-box',
+                                                                    WebkitLineClamp: 2,
+                                                                    WebkitBoxOrient: 'vertical',
+                                                                    overflow: 'hidden',
+                                                                    textOverflow: 'ellipsis'
+                                                                }}
+                                                            >
+                                                                {holiday.description}
+                                                            </Typography>
+                                                        )}
+                                                    </Box>
+
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+
+
+                                                        {isAdmin && (
+                                                            <Box
+                                                                className="admin-actions"
+                                                                sx={{
+                                                                    display: 'flex',
+                                                                    gap: 1,
+                                                                    ml: 'auto'
+                                                                }}
+                                                            >
+                                                                <Tooltip title={isHolidayPast(holiday.date) ? "Cannot edit past holidays" : "Edit"}>
+                                                                    <span>
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            onClick={() => handleOpenDialog(holiday)}
+                                                                            disabled={isHolidayPast(holiday.date)}
+                                                                            sx={{
+                                                                                color: isHolidayPast(holiday.date) ? 'text.disabled' : 'text.secondary',
+                                                                                border: '1px solid',
+                                                                                borderColor: isHolidayPast(holiday.date) ? 'action.disabledBackground' : 'divider',
+                                                                                p: 0.5,
+                                                                                '&:hover': !isHolidayPast(holiday.date) && {
+                                                                                    color: 'primary.main',
+                                                                                    borderColor: theme.palette.primary.main,
+                                                                                    bgcolor: alpha(theme.palette.primary.main, 0.05)
+                                                                                },
+                                                                                '&.Mui-disabled': {
+                                                                                    opacity: 0.5,
+                                                                                    cursor: 'not-allowed'
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            <EditIcon sx={{ fontSize: 14 }} />
+                                                                        </IconButton>
+                                                                    </span>
+                                                                </Tooltip>
+                                                                <Box sx={{ width: '1px', height: 16, bgcolor: 'divider', my: 'auto' }} />
+                                                                <Tooltip title={isHolidayPast(holiday.date) ? "Cannot delete past holidays" : "Delete"}>
+                                                                    <span>
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            onClick={() => handleDeleteHoliday(holiday)}
+                                                                            disabled={isHolidayPast(holiday.date)}
+                                                                            sx={{
+                                                                                color: isHolidayPast(holiday.date) ? 'text.disabled' : 'text.secondary',
+                                                                                border: '1px solid',
+                                                                                borderColor: isHolidayPast(holiday.date) ? 'action.disabledBackground' : 'divider',
+                                                                                p: 0.5,
+                                                                                '&:hover': !isHolidayPast(holiday.date) && {
+                                                                                    color: 'error.main',
+                                                                                    borderColor: theme.palette.error.main,
+                                                                                    bgcolor: alpha(theme.palette.error.main, 0.05)
+                                                                                },
+                                                                                '&.Mui-disabled': {
+                                                                                    opacity: 0.5,
+                                                                                    cursor: 'not-allowed'
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            <DeleteIcon sx={{ fontSize: 14 }} />
+                                                                        </IconButton>
+                                                                    </span>
+                                                                </Tooltip>
+                                                            </Box>
+                                                        )}
+                                                    </Box>
+                                                </Box>
+                                            );
+                                        })
+                                    ) : (
+                                        <Box sx={{
+                                            flex: 1,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            flexDirection: 'column'
+                                        }}>
+                                            <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600, letterSpacing: '0.05em' }}>
+                                                No Holidays
+                                            </Typography>
                                         </Box>
-                                    </MenuItem>
-                                    <MenuItem value="holiday">Holiday</MenuItem>
-                                    <MenuItem value="event">General Event</MenuItem>
-                                </TextField>
+                                    )}
+                                </Box>
+                            </Paper>
+                        );
+                    })}
+                </Box>
+            )}
 
-                                <Tooltip title="Set specific time for meetings">
-                                    <TextField
-                                        type="time"
-                                        label="Time"
-                                        value={eventData.start_time}
-                                        onChange={(e) => setEventData({ ...eventData, start_time: e.target.value })}
-                                        InputLabelProps={{ shrink: true }}
-                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' }, width: 200 }}
-                                    />
-                                </Tooltip>
-                            </Box>
+            {/* Add/Edit Holiday Dialog */}
+            <Dialog
+                open={openDialog}
+                onClose={() => setOpenDialog(false)}
+                maxWidth="xs"
+                fullWidth
+                PaperProps={{ sx: { borderRadius: '24px', p: 1 } }}
+            >
+                <DialogTitle sx={{ fontWeight: 800 }}>
+                    {editingHoliday ? 'Edit Holiday' : 'Add New Holiday'}
+                </DialogTitle>
+                <DialogContent>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, mt: 1 }}>
+                        <TextField
+                            fullWidth
+                            label="Holiday Title"
+                            value={holidayForm.title}
+                            onChange={(e) => setHolidayForm({ ...holidayForm, title: e.target.value })}
+                            variant="outlined"
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Description"
+                            value={holidayForm.description}
+                            onChange={(e) => setHolidayForm({ ...holidayForm, description: e.target.value })}
+                            variant="outlined"
+                            multiline
+                            rows={2}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                        />
+                        <TextField
+                            fullWidth
+                            label="Date"
+                            type="date"
+                            value={holidayForm.date}
+                            onChange={(e) => setHolidayForm({ ...holidayForm, date: e.target.value })}
+                            InputLabelProps={{ shrink: true }}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                        />
+                        <TextField
+                            select
+                            fullWidth
+                            label="Type"
+                            value={holidayForm.leave_type}
+                            onChange={(e) => setHolidayForm({ ...holidayForm, leave_type: e.target.value })}
+                            sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                            SelectProps={{ MenuProps: { PaperProps: { sx: { maxHeight: 300 } } } }}
+                        >
+                            <MenuItem value="NATIONAL_HOLIDAY">National Holiday (Mandatory)</MenuItem>
+                            <MenuItem value="FUNCTIONAL_HOLIDAY">Functional Holiday (Mandatory)</MenuItem>
+                            <MenuItem value="RESTRICTED_HOLIDAY">Restricted Holiday (Optional)</MenuItem>
+                        </TextField>
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{ p: 3 }}>
+                    <Button onClick={() => setOpenDialog(false)} sx={{ color: 'text.secondary', fontWeight: 600 }}>Cancel</Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleSaveHoliday}
+                        disabled={!holidayForm.title || !holidayForm.date}
+                        sx={{ borderRadius: '12px', px: 3, fontWeight: 700 }}
+                    >
+                        Save
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
-                            <TextField
-                                fullWidth
-                                multiline
-                                rows={3}
-                                placeholder="Add notes or description..."
-                                value={eventData.description}
-                                onChange={(e) => setEventData({ ...eventData, description: e.target.value })}
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '16px' } }}
-                            />
-                        </Box>
-                    </DialogContent>
-                    <DialogActions sx={{ p: 3 }}>
-                        <Button
-                            onClick={() => setOpenDialog(false)}
-                            sx={{ color: 'text.secondary', fontWeight: 600 }}
-                        >
-                            Discard
-                        </Button>
-                        <Button
-                            variant="contained"
-                            onClick={handleCreateEvent}
-                            disabled={!eventData.title}
-                            sx={{
-                                borderRadius: '12px',
-                                px: 4,
-                                fontWeight: 700,
-                                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)'
-                            }}
-                        >
-                            Save Event
-                        </Button>
-                    </DialogActions>
-                </Dialog>
-            </Box>
-        </LocalizationProvider>
+
+
+            {/* Modern Delete Confirmation Dialog */}
+            <Dialog
+                open={openDeleteDialog}
+                onClose={() => setOpenDeleteDialog(false)}
+                PaperProps={{ sx: { borderRadius: '24px', width: '100%', maxWidth: 400, p: 1 } }}
+            >
+                <DialogTitle sx={{ fontWeight: 800, color: 'error.main' }}>
+                    Delete Holiday?
+                </DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary">
+                        Are you sure you want to delete <strong>{holidayToDelete?.title}</strong>? This action cannot be undone.
+                    </Typography>
+                </DialogContent>
+                <DialogActions sx={{ p: 3 }}>
+                    <Button
+                        onClick={() => setOpenDeleteDialog(false)}
+                        sx={{ color: 'text.secondary', fontWeight: 600 }}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        onClick={confirmDelete}
+                        sx={{ borderRadius: '12px', px: 3, fontWeight: 700 }}
+                    >
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
+            <CustomSnackbar
+                open={snackbar.open}
+                onClose={() => setSnackbar({ ...snackbar, open: false })}
+                message={snackbar.message}
+                severity={snackbar.severity}
+            />
+        </Box>
     );
 };
 
-export default CompanyCalendar;
+export default HolidayCalendar;

@@ -88,8 +88,9 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, tog
     }
 
     // Available to all users
-    menuItems.push({ text: 'Company Calendar', icon: <CalendarMonthIcon />, path: '/calendar' });
-    menuItems.push({ text: 'Holiday Calendar', icon: <EventAvailableIcon />, path: '/holidays' });
+
+    menuItems.push({ text: 'Comapny Calendar', icon: <EventAvailableIcon />, path: '/holidays' });
+    menuItems.push({ text: 'Roster', icon: <CalendarMonthIcon />, path: '/roster' });
 
 
     /*
