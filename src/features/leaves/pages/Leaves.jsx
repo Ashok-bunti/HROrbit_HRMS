@@ -103,6 +103,8 @@ const Leaves = () => {
     const [rejectionReason, setRejectionReason] = useState('');
     const [leaveToRejectId, setLeaveToRejectId] = useState(null);
     const [historyYear, setHistoryYear] = useState(new Date().getFullYear());
+    const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+    const [selectedLeave, setSelectedLeave] = useState(null);
 
     const isAdmin = isUserAdmin || isHR;
 
@@ -273,6 +275,11 @@ const Leaves = () => {
                 showSnackbar(err.data?.error || 'Failed to withdraw leave request', 'error');
             }
         }
+    };
+
+    const handleCardClick = (leave) => {
+        setSelectedLeave(leave);
+        setDetailsDialogOpen(true);
     };
 
     // Tab Definitions
@@ -861,11 +868,14 @@ const Leaves = () => {
                                                                     border: '1px dashed',
                                                                     borderColor: alpha(theme.palette.primary.main, 0.2),
                                                                     transition: 'all 0.2s ease',
+                                                                    cursor: 'pointer',
                                                                     '&:hover': {
                                                                         borderColor: theme.palette.primary.main,
-                                                                        bgcolor: alpha(theme.palette.primary.main, 0.08)
+                                                                        bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                                                        transform: 'scale(1.02)'
                                                                     }
                                                                 }}
+                                                                onClick={() => handleCardClick(leave)}
                                                             >
                                                                 <Box sx={{
                                                                     minWidth: 42,
@@ -1544,6 +1554,111 @@ const Leaves = () => {
                     confirmText="Withdraw"
                     loading={isDeleting}
                 />
+
+                <Dialog
+                    open={detailsDialogOpen}
+                    onClose={() => setDetailsDialogOpen(false)}
+                    maxWidth="xs"
+                    fullWidth
+                    PaperProps={{
+                        sx: { borderRadius: '24px', p: 0.5, boxShadow: '0 20px 50px rgba(0,0,0,0.1)' }
+                    }}
+                >
+                    <DialogTitle sx={{ py: 1.5, px: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid', borderColor: alpha(theme.palette.divider, 0.05) }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {selectedLeave && (
+                                <Box
+                                    sx={{
+                                        width: 12,
+                                        height: 12,
+                                        borderRadius: '50%',
+                                        bgcolor: selectedLeave.status?.toUpperCase() === 'APPROVED' ? 'success.main' :
+                                            selectedLeave.status?.toUpperCase() === 'REJECTED' ? 'error.main' : 'warning.main',
+                                        boxShadow: '0 0 0 2px ' + alpha(
+                                            selectedLeave.status?.toUpperCase() === 'APPROVED' ? theme.palette.success.main :
+                                                selectedLeave.status?.toUpperCase() === 'REJECTED' ? theme.palette.error.main : theme.palette.warning.main,
+                                            0.2
+                                        )
+                                    }}
+                                />
+                            )}
+                            <Typography variant="h6" sx={{ fontWeight: 800, fontSize: '0.9rem', color: 'text.secondary', letterSpacing: '-0.01em' }}>
+                                Leave Details
+                            </Typography>
+                            {selectedLeave && (
+                                <>
+                                    <Box sx={{ width: '1px', height: '16px', bgcolor: 'divider' }} />
+                                    <Typography variant="h6" sx={{ fontWeight: 900, fontSize: '0.95rem', color: 'text.primary' }}>
+                                        {selectedLeave.leave_type}
+                                    </Typography>
+                                </>
+                            )}
+                        </Box>
+                        <IconButton onClick={() => setDetailsDialogOpen(false)} size="small" sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' } }}>
+                            <Close fontSize="small" />
+                        </IconButton>
+                    </DialogTitle>
+                    <DialogContent sx={{ p: 2.5 }}>
+                        {selectedLeave && (
+                            <Stack spacing={2}>
+
+                                {/* Duration Info Table */}
+                                <Box sx={{
+                                    border: '1px dashed',
+                                    borderColor: alpha(theme.palette.primary.main, 0.4),
+                                    borderRadius: '16px',
+                                    overflow: 'hidden',
+                                    bgcolor: alpha(theme.palette.primary.main, 0.04)
+                                }}>
+                                    <Box sx={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr' }}>
+                                        <Box sx={{ p: 1.5, borderRight: '1px dashed', borderColor: alpha(theme.palette.primary.main, 0.3) }}>
+                                            <Typography variant="caption" sx={{ color: 'primary.main', fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', display: 'block', mb: 0.2 }}>Duration</Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.secondary', fontSize: '0.9rem' }}>
+                                                {format(new Date(selectedLeave.start_date), 'dd MMM')} - {format(new Date(selectedLeave.end_date), 'dd MMM')}
+                                            </Typography>
+                                        </Box>
+                                        <Box sx={{ p: 1.5 }}>
+                                            <Typography variant="caption" sx={{ color: 'primary.main', fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', display: 'block', mb: 0.2 }}>Total</Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 800, color: 'text.primary', fontSize: '0.95rem' }}>
+                                                {selectedLeave.is_half_day ? '0.5 Day' : `${selectedLeave.total_days} ${selectedLeave.total_days > 1 ? 'Days' : 'Day'}`}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+                                </Box>
+
+                                {/* Reason Sections */}
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                    <Box>
+                                        <Typography variant="caption" sx={{ color: 'text.disabled', fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', mb: 0.5, display: 'block' }}>Reason for Application</Typography>
+                                        <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: alpha('#f4f6f8', 0.5), border: '1px dashed', borderColor: alpha(theme.palette.divider, 0.8) }}>
+                                            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem', lineHeight: 1.5 }}>
+                                                {selectedLeave.reason}
+                                            </Typography>
+                                        </Box>
+                                    </Box>
+
+                                    {selectedLeave.status?.toUpperCase() === 'REJECTED' && (
+                                        <Box>
+                                            <Typography variant="caption" sx={{ color: 'error.main', fontSize: '0.6rem', fontWeight: 800, textTransform: 'uppercase', mb: 0.5, display: 'block' }}>Rejection Reason</Typography>
+                                            <Box sx={{ p: 1.5, borderRadius: '12px', bgcolor: alpha(theme.palette.error.main, 0.04), border: '1px solid', borderColor: alpha(theme.palette.error.main, 0.15) }}>
+                                                <Typography variant="body2" sx={{ color: 'error.dark', fontWeight: 600, fontSize: '0.85rem', lineHeight: 1.5 }}>
+                                                    {selectedLeave.rejection_reason || 'Not specified'}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                    )}
+
+                                    {selectedLeave.status?.toUpperCase() === 'APPROVED' && selectedLeave.approver_name && (
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 1.5, borderRadius: '12px', bgcolor: alpha(theme.palette.success.main, 0.03), border: '1px solid', borderColor: alpha(theme.palette.success.main, 0.1) }}>
+                                            <Typography variant="caption" sx={{ color: 'success.main', fontWeight: 800, textTransform: 'uppercase', fontSize: '0.6rem' }}>Approved By</Typography>
+                                            <Typography variant="body2" sx={{ fontWeight: 700, color: 'success.dark', fontSize: '0.75rem' }}>{selectedLeave.approver_name}</Typography>
+                                        </Box>
+                                    )}
+                                </Box>
+                            </Stack>
+                        )}
+                    </DialogContent>
+                </Dialog>
 
                 <CustomSnackbar
                     open={snackbar.open}
