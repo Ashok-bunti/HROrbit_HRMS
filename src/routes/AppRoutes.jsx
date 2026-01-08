@@ -19,12 +19,16 @@ import ForcePasswordChange from '../features/auth/pages/ForcePasswordChange';
 // Admin pages
 import AdminDashboard from '../features/dashboard/pages/AdminDashboard';
 import UserManagement from '../features/users/pages/UserManagement';
-import Payroll from '../features/payroll/pages/Payroll';
 import EngagementDashboard from '../features/dashboard/pages/EngagementDashboard';
 import Biometric from '../features/attendance/pages/Biometric';
 import Roles from '../features/roles/pages/Roles';
-import Payslips from '../features/payroll/pages/Payslips';
 import LeavePolicies from '../features/policies/pages/LeavePolicies';
+
+// Payroll pages
+import PayrollManagement from '../features/payroll/pages/PayrollManagement';
+import SalaryStructure from '../features/payroll/pages/SalaryStructure';
+import StatutoryRules from '../features/payroll/pages/StatutoryRules';
+import Payslips from '../features/payroll/pages/Payslips';
 
 // Employee pages
 import EmployeeDashboard from '../features/dashboard/pages/EmployeeDashboard';
@@ -72,30 +76,6 @@ const AppRoutes = () => {
                     }
                 />
                 <Route
-                    path="admin/payroll"
-                    element={
-                        <PrivateRoute requiredPermission="payroll:read">
-                            <Payroll />
-                        </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="admin/engagement"
-                    element={
-                        <PrivateRoute requiredPermission="surveys:read">
-                            <EngagementDashboard />
-                        </PrivateRoute>
-                    }
-                />
-                <Route
-                    path="admin/biometric"
-                    element={
-                        <PrivateRoute requiredPermission="biometric:read">
-                            <Biometric />
-                        </PrivateRoute>
-                    }
-                />
-                <Route
                     path="admin/roles"
                     element={
                         <PrivateRoute requiredPermission="roles:read">
@@ -109,6 +89,40 @@ const AppRoutes = () => {
                     element={
                         <PrivateRoute requiredPermission="leave_policies:read">
                             <LeavePolicies />
+                        </PrivateRoute>
+                    }
+                />
+
+                {/* Payroll routes */}
+                <Route
+                    path="payroll"
+                    element={
+                        <PrivateRoute requiredPermission="payroll:read">
+                            <PayrollManagement />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="payroll/salary-structure"
+                    element={
+                        <PrivateRoute requiredPermission="payroll:manage">
+                            <SalaryStructure />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="payroll/statutory-rules"
+                    element={
+                        <PrivateRoute requiredPermission="payroll:manage">
+                            <StatutoryRules />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="payroll/payslips"
+                    element={
+                        <PrivateRoute requiredPermission="payroll:read">
+                            <Payslips />
                         </PrivateRoute>
                     }
                 />

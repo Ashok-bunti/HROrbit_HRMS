@@ -11,3 +11,20 @@ export const TIME_OPTIONS = (() => {
     }
     return options;
 })();
+
+export const timeToMinutes = (timeStr) => {
+    if (!timeStr) return 0;
+    const match = timeStr.match(/^(\d{2}):(\d{2})(AM|PM)$/);
+    if (!match) return 0;
+    let [_, hours, minutes, ampm] = match;
+    hours = parseInt(hours, 10);
+    minutes = parseInt(minutes, 10);
+    if (ampm === 'PM' && hours !== 12) hours += 12;
+    if (ampm === 'AM' && hours === 12) hours = 0;
+    return hours * 60 + minutes;
+};
+
+export const isEndTimeValid = (startTime, endTime) => {
+    if (!startTime || !endTime) return true;
+    return timeToMinutes(endTime) > timeToMinutes(startTime);
+};

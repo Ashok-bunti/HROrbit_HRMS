@@ -112,7 +112,28 @@ const RosterCalendar = ({ employee, canManage, searchTerm }) => {
             });
 
             if (data.success && data.data && data.data.schedules) {
-                const formattedEvents = data.data.schedules.map(schedule => {
+                // Determine the current month being viewed to filter shifts later
+                // Note: We use the range suggested by FullCalendar to fetch, 
+                // but we might want to ONLY show shifts for the primary month.
+                // However, the user asked to show 'something' in the empty cells.
+
+                const dedupedSchedulesMap = new Map();
+
+                data.data.schedules.forEach(schedule => {
+                    if (!schedule.date) return;
+                    const dateStr = schedule.date.split('T')[0];
+                    const existing = dedupedSchedulesMap.get(dateStr);
+
+                    // Priority logic: 
+                    // 1. If no record for date, add it
+                    // 2. If existing is a week-off and new is a shift, overwrite
+                    // 3. Otherwise keep existing (prevents simple duplicates)
+                    if (!existing || (existing.is_week_off && !schedule.is_week_off)) {
+                        dedupedSchedulesMap.set(dateStr, schedule);
+                    }
+                });
+
+                const formattedEvents = Array.from(dedupedSchedulesMap.values()).map(schedule => {
                     const isWeekOff = schedule.is_week_off;
                     let startDt, endDt;
 
@@ -406,8 +427,8 @@ const RosterCalendar = ({ employee, canManage, searchTerm }) => {
     };
 
     const renderDayCell = (dayInfo) => {
-        const isEndOfWeek = dayInfo.date.getDay() === 0; // Sunday
         const isToday = dayInfo.isToday;
+        const isOtherMonth = !dayInfo.isCurrent;
 
         return (
             <Box sx={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -415,11 +436,11 @@ const RosterCalendar = ({ employee, canManage, searchTerm }) => {
                     <Typography sx={{
                         fontSize: '0.85rem',
                         fontWeight: 800,
-                        color: isToday ? '#fff' : theme.palette.text.primary,
+                        color: isToday ? '#fff' : (isOtherMonth ? alpha(theme.palette.text.secondary, 0.3) : theme.palette.text.primary),
                         bgcolor: isToday ? theme.palette.primary.main : 'transparent',
-                        borderRadius: '10px', // More modern rounded square look
+                        borderRadius: '10px',
                         width: { xs: 24, sm: 28 },
-                        height: { xs: 24, sm: 28 },
+                        height: { xs: 34, sm: 28 },
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -712,6 +733,8 @@ const RosterCalendar = ({ employee, canManage, searchTerm }) => {
                     eventContent={renderEventContent}
                     dayCellContent={renderDayCell}
                     slotEventOverlap={false}
+                    showNonCurrentDates={true}
+                    fixedWeekCount={false}
                 />
 
                 {!isMobile && (

@@ -196,7 +196,7 @@ const RosterTableView = ({ employee, allEmployees, canManage, searchTerm, onEmpl
                 const empInfo = allEmployees?.find(e => e.id === s.employee_id || e.employee_code === s.employee_code);
                 const role = empInfo?.users?.role || 'employee';
                 const code = empInfo?.employee_code || s.employee_code || '';
-                groups[name] = { name, role, code, shifts: {} };
+                groups[name] = { name, role, code, employee_id: s.employee_id, shifts: {} };
             }
             const dateStr = format(parseISO(s.date), 'yyyy-MM-dd');
             groups[name].shifts[dateStr] = s;
@@ -650,7 +650,33 @@ const RosterTableView = ({ employee, allEmployees, canManage, searchTerm, onEmpl
                                                                 </Box>
                                                             </Tooltip>
                                                         ) : (
-                                                            <Typography variant="caption" sx={{ opacity: 0.1 }}>.</Typography>
+                                                            <Box
+                                                                onClick={() => canManage && onAddRoster && onAddRoster(dateStr, group.employee_id)}
+                                                                sx={{
+                                                                    height: 50,
+                                                                    width: '98%',
+                                                                    mx: 'auto',
+                                                                    cursor: canManage ? 'pointer' : 'default',
+                                                                    bgcolor: 'transparent',
+                                                                    color: 'text.disabled',
+                                                                    border: '1.5px dotted',
+                                                                    borderColor: 'divider',
+                                                                    borderRadius: '6px',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                    transition: 'all 0.2s',
+                                                                    '&:hover': canManage ? {
+                                                                        bgcolor: alpha(theme.palette.primary.main, 0.05),
+                                                                        borderColor: theme.palette.primary.main,
+                                                                        color: theme.palette.primary.main,
+                                                                    } : {}
+                                                                }}
+                                                            >
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.5 }}>
+                                                                    {canManage && <AddIcon sx={{ fontSize: '1.1rem' }} />}
+                                                                </Box>
+                                                            </Box>
                                                         )}
                                                     </TableCell>
                                                 );

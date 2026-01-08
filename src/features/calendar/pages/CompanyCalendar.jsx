@@ -192,7 +192,7 @@ const HolidayCalendar = () => {
     return (
         <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
             <PageHeader
-                title="Holiday Calendar"
+                title="Company Calendar"
                 subtitle="View and manage company holidays"
                 action={
                     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'center' }}>

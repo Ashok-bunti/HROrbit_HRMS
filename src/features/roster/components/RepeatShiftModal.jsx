@@ -15,13 +15,14 @@ import {
     Autocomplete,
     Typography,
     useTheme,
-    useMediaQuery
+    useMediaQuery,
+    Alert
 } from '@mui/material';
 import rosterService from '../store/Rosterapi';
 import { useGetEmployeesQuery } from '../../employees/store/employeeApi';
 import useSnackbar from '../../../hooks/useSnackbar';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
-import { TIME_OPTIONS } from '../utils/timeConstants';
+import { TIME_OPTIONS, isEndTimeValid } from '../utils/timeConstants';
 
 const RepeatShiftModal = ({ open, onClose, onSuccess }) => {
     const theme = useTheme();
@@ -46,6 +47,12 @@ const RepeatShiftModal = ({ open, onClose, onSuccess }) => {
         if (!formData.employee_id || !formData.start_date) {
             setError('Employee ID and Start Date are required');
             showSnackbar('Employee ID and Start Date are required', 'error');
+            return;
+        }
+
+        if (!formData.is_week_off && !isEndTimeValid(formData.shift_start, formData.shift_end)) {
+            setError('End time must be after start time');
+            showSnackbar('End time must be after start time', 'error');
             return;
         }
 
@@ -176,6 +183,8 @@ const RepeatShiftModal = ({ open, onClose, onSuccess }) => {
                                 value={formData.shift_end}
                                 onChange={(e) => setFormData({ ...formData, shift_end: e.target.value })}
                                 disabled={formData.is_week_off}
+                                error={!formData.is_week_off && !isEndTimeValid(formData.shift_start, formData.shift_end)}
+                                helperText={!formData.is_week_off && !isEndTimeValid(formData.shift_start, formData.shift_end) ? "End time must be after start time" : ""}
                                 SelectProps={{
                                     MenuProps: {
                                         PaperProps: {

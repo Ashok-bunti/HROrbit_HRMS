@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     Drawer,
     Box,
@@ -10,7 +10,8 @@ import {
     Typography,
     Divider,
     IconButton,
-    Tooltip
+    Tooltip,
+    Collapse
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import PeopleIcon from '@mui/icons-material/People';
@@ -36,11 +37,20 @@ import logo_image from '../../../public/logo.png';
 import { usePermissions } from '../../hooks/usePermissions';
 import { useTheme } from '@mui/material/styles';
 import GroupsIcon from '@mui/icons-material/Groups';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import GavelIcon from '@mui/icons-material/Gavel';
+import DescriptionIcon from '@mui/icons-material/Description';
+
 const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, toggleSidebar }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const { can, userRole, isEmployee } = usePermissions();
     const theme = useTheme();
+
+    // State for expandable menu items
+    const [expandedMenus, setExpandedMenus] = useState({});
 
     const menuItems = [];
 
@@ -89,20 +99,50 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, tog
 
     // Available to all users
 
-    menuItems.push({ text: 'Comapny Calendar', icon: <EventAvailableIcon />, path: '/holidays' });
+    menuItems.push({ text: 'Company Calendar', icon: <EventAvailableIcon />, path: '/holidays' });
     menuItems.push({ text: 'Roster', icon: <CalendarMonthIcon />, path: '/roster' });
 
+    // Payroll Management with submenu
+    if (can('payroll', 'read')) {
+        const payrollChildren = [
+            {
+                text: 'Payroll Management',
+                icon: <ReceiptIcon />,
+                path: '/payroll',
+                permission: 'payroll:read',
+            },
+            {
+                text: 'Salary Structure',
+                icon: <AccountBalanceIcon />,
+                path: '/payroll/salary-structure',
+                permission: 'payroll:manage',
+            },
+            {
+                text: 'Statutory Rules',
+                icon: <GavelIcon />,
+                path: '/payroll/statutory-rules',
+                permission: 'payroll:manage',
+            },
+            {
+                text: 'Payslips',
+                icon: <DescriptionIcon />,
+                path: '/payroll/payslips',
+                permission: 'payroll:read',
+            },
+        ].filter(child => !child.permission || can(child.permission.split(':')[0], child.permission.split(':')[1]));
+
+        menuItems.push({
+            text: 'Payroll',
+            icon: <ReceiptIcon />,
+            path: '/payroll',
+            children: payrollChildren,
+        });
+    }
 
     /*
     // Attendance: Manager vs Employee
     if (can('attendance', 'read')) { // Can view all attendance
         menuItems.push({ text: 'Attendance Management', icon: <AccessTimeIcon />, path: '/attendance' });
-    }
-    */
-
-    /*
-    if (can('payroll', 'read')) {
-        menuItems.push({ text: 'Payroll', icon: <ReceiptIcon />, path: '/admin/payroll' });
     }
     */
 
@@ -259,28 +299,93 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, tog
             }}>
                 <List sx={{ px: 0 }}>
                     {menuItems.map((item) => (
-                        <ListItem key={item.text} disablePadding sx={{ display: 'block' }}>
-                            <Tooltip title={isCollapsed ? item.text : ''} placement="right">
-                                <ListItemButton
-                                    onClick={() => navigate(item.path)}
-                                    sx={getListItemStyles(item.path)}
-                                >
-                                    <ListItemIcon sx={getIconStyles(item.path)}>
-                                        {item.icon}
-                                    </ListItemIcon>
-                                    {!isCollapsed && (
-                                        <ListItemText
-                                            primary={item.text}
-                                            primaryTypographyProps={{
-                                                fontWeight: location.pathname === item.path ? 600 : 400,
-                                                color: location.pathname === item.path ? 'primary.main' : 'text.primary',
-                                                fontSize: '0.875rem'
-                                            }}
-                                        />
-                                    )}
-                                </ListItemButton>
-                            </Tooltip>
-                        </ListItem>
+                        <React.Fragment key={item.text}>
+                            <ListItem disablePadding sx={{ display: 'block' }}>
+                                <Tooltip title={isCollapsed ? item.text : ''} placement="right">
+                                    <ListItemButton
+                                        onClick={() => {
+                                            if (item.children && item.children.length > 0) {
+                                                // Toggle expand/collapse
+                                                setExpandedMenus(prev => ({
+                                                    ...prev,
+                                                    [item.text]: !prev[item.text]
+                                                }));
+                                            } else {
+                                                // Navigate to path
+                                                navigate(item.path);
+                                            }
+                                        }}
+                                        sx={getListItemStyles(item.path)}
+                                    >
+                                        <ListItemIcon sx={getIconStyles(item.path)}>
+                                            {item.icon}
+                                        </ListItemIcon>
+                                        {!isCollapsed && (
+                                            <>
+                                                <ListItemText
+                                                    primary={item.text}
+                                                    primaryTypographyProps={{
+                                                        fontWeight: location.pathname.startsWith(item.path) ? 600 : 400,
+                                                        color: location.pathname.startsWith(item.path) ? 'primary.main' : 'text.primary',
+                                                        fontSize: '0.875rem'
+                                                    }}
+                                                />
+                                                {item.children && item.children.length > 0 && (
+                                                    expandedMenus[item.text] ? <ExpandLessIcon /> : <ExpandMoreIcon />
+                                                )}
+                                            </>
+                                        )}
+                                    </ListItemButton>
+                                </Tooltip>
+                            </ListItem>
+
+                            {/* Render children if exists */}
+                            {item.children && item.children.length > 0 && !isCollapsed && (
+                                <Collapse in={expandedMenus[item.text]} timeout="auto" unmountOnExit>
+                                    <List component="div" disablePadding>
+                                        {item.children.map((child) => (
+                                            <ListItem key={child.text} disablePadding sx={{ display: 'block' }}>
+                                                <ListItemButton
+                                                    onClick={() => navigate(child.path)}
+                                                    sx={{
+                                                        pl: 4,
+                                                        py: 1,
+                                                        minHeight: 40,
+                                                        borderRadius: '0 20px 20px 0',
+                                                        mr: 2,
+                                                        bgcolor: location.pathname === child.path
+                                                            ? 'rgba(249, 115, 22, 0.08)'
+                                                            : 'transparent',
+                                                        '&:hover': {
+                                                            bgcolor: location.pathname === child.path
+                                                                ? 'rgba(249, 115, 22, 0.12)'
+                                                                : 'action.hover',
+                                                        }
+                                                    }}
+                                                >
+                                                    <ListItemIcon sx={{
+                                                        minWidth: 0,
+                                                        mr: 2,
+                                                        justifyContent: 'center',
+                                                        color: location.pathname === child.path ? 'primary.main' : 'text.secondary',
+                                                    }}>
+                                                        {child.icon}
+                                                    </ListItemIcon>
+                                                    <ListItemText
+                                                        primary={child.text}
+                                                        primaryTypographyProps={{
+                                                            fontWeight: location.pathname === child.path ? 600 : 400,
+                                                            color: location.pathname === child.path ? 'primary.main' : 'text.primary',
+                                                            fontSize: '0.8125rem'
+                                                        }}
+                                                    />
+                                                </ListItemButton>
+                                            </ListItem>
+                                        ))}
+                                    </List>
+                                </Collapse>
+                            )}
+                        </React.Fragment>
                     ))}
                 </List>
             </Box>

@@ -4,6 +4,7 @@ import { Box, Chip, IconButton, Tooltip, Typography, Button, alpha } from '@mui/
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import rosterService from '../store/Rosterapi';
 import { useTheme } from '@mui/material/styles';
+import ConfirmDialog from '../../../components/common/ConfirmDialog';
 
 const RosterList = ({ employee, canManage }) => {
     const theme = useTheme();
@@ -15,6 +16,7 @@ const RosterList = ({ employee, canManage }) => {
     });
     const [rowCount, setRowCount] = useState(0);
     const [selectedIds, setSelectedIds] = useState([]);
+    const [confirmState, setConfirmState] = useState({ open: false, type: null, id: null });
 
     const fetchRosters = async () => {
         setLoading(true);
@@ -46,23 +48,37 @@ const RosterList = ({ employee, canManage }) => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this roster?')) return;
+        setLoading(true);
         try {
             await rosterService.deleteRoster(id);
             fetchRosters();
+            setConfirmState({ open: false, type: null, id: null });
         } catch (error) {
-            alert('Failed to delete roster');
+            console.error('Failed to delete roster', error);
+        } finally {
+            setLoading(false);
         }
     };
 
     const handleBulkDelete = async () => {
-        if (!window.confirm(`Delete ${selectedIds.length} rosters?`)) return;
+        setLoading(true);
         try {
             await rosterService.bulkDelete(selectedIds);
             fetchRosters();
             setSelectedIds([]);
+            setConfirmState({ open: false, type: null, id: null });
         } catch (error) {
-            alert('Bulk delete failed');
+            console.error('Bulk delete failed', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirmAction = () => {
+        if (confirmState.type === 'single') {
+            handleDelete(confirmState.id);
+        } else if (confirmState.type === 'bulk') {
+            handleBulkDelete();
         }
     };
 
@@ -159,7 +175,7 @@ const RosterList = ({ employee, canManage }) => {
                     key={`delete-${params.id}`}
                     icon={<Tooltip title="Delete Roster"><DeleteIcon fontSize="small" /></Tooltip>}
                     label="Delete"
-                    onClick={() => handleDelete(params.row.id)}
+                    onClick={() => setConfirmState({ open: true, type: 'single', id: params.row.id })}
                     sx={{
                         color: 'error.main',
                         border: 1,
@@ -179,7 +195,7 @@ const RosterList = ({ employee, canManage }) => {
             {canManage && selectedIds.length > 0 && (
                 <Box sx={{ mb: 2, display: 'flex', gap: 2, alignItems: 'center' }}>
                     <Typography>{selectedIds.length} items selected</Typography>
-                    <Button variant="contained" color="error" size="small" onClick={handleBulkDelete}>
+                    <Button variant="contained" color="error" size="small" onClick={() => setConfirmState({ open: true, type: 'bulk' })}>
                         Bulk Delete
                     </Button>
                 </Box>
@@ -241,6 +257,16 @@ const RosterList = ({ employee, canManage }) => {
                     columnHeaderHeight={48}
                 />
             </Box>
+            <ConfirmDialog
+                open={confirmState.open}
+                onClose={() => setConfirmState({ open: false, type: null, id: null })}
+                onConfirm={confirmAction}
+                title={confirmState.type === 'bulk' ? "Bulk Delete" : "Delete Roster"}
+                message={confirmState.type === 'bulk'
+                    ? `Are you sure you want to delete ${selectedIds.length} rosters? This action cannot be undone.`
+                    : "Are you sure you want to delete this roster? This action cannot be undone."}
+                loading={loading}
+            />
         </Box>
     );
 };

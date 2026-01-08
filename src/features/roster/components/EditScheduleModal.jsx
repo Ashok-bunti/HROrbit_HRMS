@@ -13,7 +13,8 @@ import rosterService from '../store/Rosterapi';
 import useSnackbar from '../../../hooks/useSnackbar';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
 import MenuItem from '@mui/material/MenuItem';
-import { TIME_OPTIONS } from '../utils/timeConstants';
+import { TIME_OPTIONS, isEndTimeValid } from '../utils/timeConstants';
+import ConfirmDialog from '../../../components/common/ConfirmDialog';
 
 const EditScheduleModal = ({ open, onClose, schedule, onSuccess }) => {
     const [loading, setLoading] = useState(false);
@@ -25,6 +26,7 @@ const EditScheduleModal = ({ open, onClose, schedule, onSuccess }) => {
         shift_end: '',
         is_week_off: false
     });
+    const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
 
     useEffect(() => {
         if (schedule) {
@@ -38,6 +40,12 @@ const EditScheduleModal = ({ open, onClose, schedule, onSuccess }) => {
     }, [schedule]);
 
     const handleUpdate = async () => {
+        if (!formData.is_week_off && !isEndTimeValid(formData.shift_start, formData.shift_end)) {
+            setError('End time must be after start time');
+            showSnackbar('End time must be after start time', 'error');
+            return;
+        }
+
         setLoading(true);
         setError('');
         try {
@@ -57,13 +65,12 @@ const EditScheduleModal = ({ open, onClose, schedule, onSuccess }) => {
     };
 
     const handleDelete = async () => {
-        if (!window.confirm('Are you sure you want to delete this schedule entry?')) return;
-
         setLoading(true);
         setError('');
         try {
             await rosterService.deleteSchedule(schedule.id);
             showSnackbar('Schedule deleted successfully!', 'success');
+            setOpenDeleteConfirm(false);
             setTimeout(() => {
                 if (onSuccess) onSuccess();
                 onClose();
@@ -72,9 +79,14 @@ const EditScheduleModal = ({ open, onClose, schedule, onSuccess }) => {
             const errorMsg = err.response?.data?.error || 'Failed to delete schedule';
             setError(errorMsg);
             showSnackbar(errorMsg, 'error');
+            setOpenDeleteConfirm(false);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleDeleteClick = () => {
+        setOpenDeleteConfirm(true);
     };
 
     return (
@@ -118,6 +130,8 @@ const EditScheduleModal = ({ open, onClose, schedule, onSuccess }) => {
                         value={formData.shift_end}
                         onChange={(e) => setFormData({ ...formData, shift_end: e.target.value })}
                         disabled={formData.is_week_off}
+                        error={!formData.is_week_off && !isEndTimeValid(formData.shift_start, formData.shift_end)}
+                        helperText={!formData.is_week_off && !isEndTimeValid(formData.shift_start, formData.shift_end) ? "End time must be after start time" : ""}
                         SelectProps={{
                             MenuProps: {
                                 PaperProps: {
@@ -140,12 +154,21 @@ const EditScheduleModal = ({ open, onClose, schedule, onSuccess }) => {
                 </Box>
             </DialogContent>
             <DialogActions sx={{ justifyContent: 'space-between', px: 3 }}>
-                <Button color="error" onClick={handleDelete} disabled={loading}>Delete</Button>
+                <Button color="error" onClick={handleDeleteClick} disabled={loading}>Delete</Button>
                 <Box>
                     <Button onClick={onClose} sx={{ mr: 1 }}>Cancel</Button>
                     <Button variant="contained" onClick={handleUpdate} disabled={loading}>Save</Button>
                 </Box>
             </DialogActions>
+
+            <ConfirmDialog
+                open={openDeleteConfirm}
+                onClose={() => setOpenDeleteConfirm(false)}
+                onConfirm={handleDelete}
+                title="Delete Shift"
+                message="Are you sure you want to delete this shift? This action cannot be undone."
+                loading={loading}
+            />
             <CustomSnackbar
                 open={snackbar.open}
                 onClose={hideSnackbar}

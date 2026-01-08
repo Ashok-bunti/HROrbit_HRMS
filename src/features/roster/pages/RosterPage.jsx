@@ -32,6 +32,7 @@ const RosterPage = () => {
     const [userRole, setUserRole] = useState(null);
     const [refreshKey, setRefreshKey] = useState(0);
     const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [initialAddData, setInitialAddData] = useState(null);
     const ALL_EMPLOYEES_OPTION = { id: 'all', first_name: 'All', last_name: 'Employees', employee_code: 'ALL' };
     const { data: employeesData } = useGetEmployeesQuery();
     const employees = employeesData?.employees ? [ALL_EMPLOYEES_OPTION, ...employeesData.employees] : [ALL_EMPLOYEES_OPTION];
@@ -142,7 +143,14 @@ const RosterPage = () => {
                         searchTerm={searchTerm}
                         onEmployeeChange={setSelectedEmployee}
                         onSearchChange={setSearchTerm}
-                        onAddRoster={() => setOpenAddModal(true)}
+                        onAddRoster={(date, empId) => {
+                            if (date && empId) {
+                                setInitialAddData({ date, employee_id: empId });
+                            } else {
+                                setInitialAddData(null);
+                            }
+                            setOpenAddModal(true);
+                        }}
                         onUpload={() => setOpenUploadModal(true)}
                         onRepeat={() => setOpenRepeatModal(true)}
                         canManage={userRole === 'admin' || userRole === 'manager' || userRole === 'hr'}
@@ -158,8 +166,12 @@ const RosterPage = () => {
 
             <AddRosterModal
                 open={openAddModal}
-                onClose={() => setOpenAddModal(false)}
+                onClose={() => {
+                    setOpenAddModal(false);
+                    setInitialAddData(null);
+                }}
                 onSuccess={handleRefresh}
+                initialData={initialAddData}
             />
 
             <RepeatShiftModal

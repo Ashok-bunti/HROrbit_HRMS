@@ -21,9 +21,9 @@ import rosterService from '../store/Rosterapi';
 import { useGetEmployeesQuery } from '../../employees/store/employeeApi';
 import useSnackbar from '../../../hooks/useSnackbar';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
-import { TIME_OPTIONS } from '../utils/timeConstants';
+import { TIME_OPTIONS, isEndTimeValid } from '../utils/timeConstants';
 
-const AddRosterModal = ({ open, onClose, onSuccess }) => {
+const AddRosterModal = ({ open, onClose, onSuccess, initialData }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { data: employeesData } = useGetEmployeesQuery();
@@ -42,6 +42,42 @@ const AddRosterModal = ({ open, onClose, onSuccess }) => {
             { day: 'Monday', date: '', shift_start: '09:00AM', shift_end: '06:00PM', is_week_off: false }
         ]
     });
+
+    useEffect(() => {
+        if (open && initialData) {
+            const selectedEmp = initialData.employee_id ? employees.find(e => e.id === initialData.employee_id) : null;
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const initialDate = initialData.date || '';
+            const initialDay = initialDate ? days[new Date(initialDate).getDay()] : 'Monday';
+
+            setFormData({
+                employee_id: initialData.employee_id || '',
+                name: selectedEmp ? `${selectedEmp.first_name} ${selectedEmp.last_name}` : '',
+                pseudo_name: selectedEmp ? selectedEmp.pseudo_name || '' : '',
+                department: selectedEmp ? (selectedEmp.department_name || selectedEmp.departments?.name || '') : '',
+                schedules: [
+                    {
+                        day: initialDay,
+                        date: initialDate,
+                        shift_start: '09:00AM',
+                        shift_end: '06:00PM',
+                        is_week_off: false
+                    }
+                ]
+            });
+        } else if (open) {
+            // Reset for fresh modal
+            setFormData({
+                employee_id: '',
+                name: '',
+                pseudo_name: '',
+                department: '',
+                schedules: [
+                    { day: 'Monday', date: '', shift_start: '09:00AM', shift_end: '06:00PM', is_week_off: false }
+                ]
+            });
+        }
+    }, [open, initialData, employees]);
 
     const handleAddSchedule = () => {
         setFormData({
@@ -64,6 +100,7 @@ const AddRosterModal = ({ open, onClose, onSuccess }) => {
 
         // Auto-update day based on date
         if (field === 'date' && value) {
+            // Use UTC to avoid timezone shifts for the day calculation
             const date = new Date(value);
             const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             newSchedules[index].day = days[date.getDay()];
@@ -76,6 +113,14 @@ const AddRosterModal = ({ open, onClose, onSuccess }) => {
         if (!formData.employee_id || !formData.name) {
             setError('Employee ID and Name are required');
             showSnackbar('Employee ID and Name are required', 'error');
+            return;
+        }
+
+        // Validate all schedules
+        const invalidSchedule = formData.schedules.find(s => !s.is_week_off && !isEndTimeValid(s.shift_start, s.shift_end));
+        if (invalidSchedule) {
+            setError('End time must be after start time for all schedules');
+            showSnackbar('End time must be after start time for all schedules', 'error');
             return;
         }
 
@@ -109,6 +154,7 @@ const AddRosterModal = ({ open, onClose, onSuccess }) => {
                         <Autocomplete
                             options={employees}
                             getOptionLabel={(option) => `[${option.employee_code || option.id}] ${option.first_name} ${option.last_name}`}
+                            value={employees.find(e => e.id === formData.employee_id) || null}
                             renderOption={(props, option) => (
                                 <Box
                                     component="li"
@@ -246,6 +292,8 @@ const AddRosterModal = ({ open, onClose, onSuccess }) => {
                                     value={schedule.shift_end}
                                     onChange={(e) => handleScheduleChange(index, 'shift_end', e.target.value)}
                                     disabled={schedule.is_week_off}
+                                    error={!schedule.is_week_off && !isEndTimeValid(schedule.shift_start, schedule.shift_end)}
+                                    helperText={!schedule.is_week_off && !isEndTimeValid(schedule.shift_start, schedule.shift_end) ? "After Start" : ""}
                                     SelectProps={{
                                         MenuProps: {
                                             PaperProps: {
