@@ -11,6 +11,46 @@ export const leaveService = {
         return response.data;
     },
 
+    getPending: async () => {
+        const response = await api.get('/leaves/pending');
+        return response.data;
+    },
+
+    getMyBalances: async (year) => {
+        const response = await api.get('/leaves/my-balances', { params: { year } });
+        return response.data;
+    },
+
+    getAvailableTypes: async () => {
+        const response = await api.get('/leaves/available-types');
+        return response.data;
+    },
+
+    getMyManager: async () => {
+        const response = await api.get('/leaves/my-manager');
+        return response.data;
+    },
+
+    getHREmails: async () => {
+        const response = await api.get('/leaves/hr-manager-emails');
+        return response.data;
+    },
+
+    getApprovers: async () => {
+        const response = await api.get('/leaves/approvers');
+        return response.data;
+    },
+
+    getMyLeaves: async (params = {}) => {
+        const response = await api.get('/leaves/my-leaves', { params });
+        return response.data;
+    },
+
+    getMyRemaining: async (year) => {
+        const response = await api.get('/leaves/my-remaining', { params: { year } });
+        return response.data;
+    },
+
     create: async (leaveData) => {
         const response = await api.post('/leaves', leaveData);
         return response.data;
