@@ -579,12 +579,12 @@ const Leaves = () => {
             <PageHeader
                 title={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Typography variant="h4" fontWeight={700}>
-                            Leave Management
+                        <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: '-0.02em', color: 'text.primary' }}>
+                            {!isManager ? "My Leaves" : "Leave Management"}
                         </Typography>
                         {activeTab === 2 && (
                             <>
-                                <Divider orientation="vertical" flexItem sx={{ borderColor: 'divider' }} />
+                                <Divider orientation="vertical" flexItem sx={{ borderColor: 'divider', height: '24px', alignSelf: 'center' }} />
                                 <Typography variant="h6" fontWeight={600} color="primary.main" sx={{ fontSize: '1.1rem' }}>
                                     {historyYear}
                                 </Typography>
@@ -592,7 +592,10 @@ const Leaves = () => {
                         )}
                     </Box>
                 }
-                subtitle="View and manage employee leave requests."
+                subtitle={!isManager
+                    ? "View your leave balance, apply for leave, and track request status."
+                    : "View and manage employee leave requests."
+                }
                 action={
                     <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                         {activeTab === 2 && (
