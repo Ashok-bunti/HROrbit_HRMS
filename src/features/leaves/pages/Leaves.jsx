@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -24,7 +24,9 @@ import {
     Tooltip,
     IconButton,
     InputAdornment,
-    Autocomplete
+    Autocomplete,
+    useMediaQuery,
+    Avatar
 } from '@mui/material';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
 import useSnackbar from '../../../hooks/useSnackbar';
@@ -55,6 +57,7 @@ import { usePermissions } from '../../../hooks/usePermissions';
 
 const Leaves = () => {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { can, isAdmin: isUserAdmin, isHR } = usePermissions();
     const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
@@ -79,7 +82,7 @@ const Leaves = () => {
     const [deleteLeave, { isLoading: isDeleting }] = useDeleteLeaveMutation();
 
     const { snackbar, showSnackbar, hideSnackbar } = useSnackbar();
-    const [activeTab, setActiveTab] = useState(0); // 0: History, 1: Apply, 2: Policies
+    const [activeTab, setActiveTab] = useState(1); // Default to Balances (1) for employees
     const [formData, setFormData] = useState({
         leave_type: '',
         start_date: null,
@@ -287,18 +290,25 @@ const Leaves = () => {
     // Strictly restrict Approvals tab to Managers, HR, Admins, or those with 'manage' permission
     const isManager = user?.role === 'manager' || isAdmin || can('leaves', 'manage');
 
-    // Employee: Apply (0), Balances (1), History (2)
-    // Manager: Apply (0), Balances (1), My Leaves (2), Approvals (3)
+    // Auto-switch to Approvals tab for managers
+    useEffect(() => {
+        if (isManager) {
+            setActiveTab(3);
+        }
+    }, [isManager]);
+
+    // Employee: Balances (1) -> Apply (0) -> History (2)
+    // Manager: Approvals (3) -> Balances (1) -> Apply (0) -> My Leaves (2)
     const tabs = isManager
         ? [
-            { label: 'Apply', icon: <PostAdd />, value: 0, data: null },
+            { label: 'Approvals', icon: <VerifiedUser />, value: 3, data: managerApprovals },
             { label: 'Balances', icon: <FactCheck />, value: 1, data: null },
-            { label: 'My Leaves', icon: <History />, value: 2, data: myLeavesData?.leaves },
-            { label: 'Approvals', icon: <VerifiedUser />, value: 3, data: managerApprovals }
+            { label: 'Apply', icon: <PostAdd />, value: 0, data: null },
+            { label: 'My Leaves', icon: <History />, value: 2, data: myLeavesData?.leaves }
         ]
         : [
-            { label: 'Apply', icon: <PostAdd />, value: 0, data: null },
             { label: 'Balances', icon: <FactCheck />, value: 1, data: null },
+            { label: 'Apply', icon: <PostAdd />, value: 0, data: null },
             { label: 'Leave History', icon: <History />, value: 2, data: myLeavesData?.leaves }
         ];
 
@@ -616,7 +626,7 @@ const Leaves = () => {
                 }
                 subtitle={headerData.subtitle}
                 action={
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'center', width: { xs: '100%', sm: 'auto' } }}>
                         {activeTab === 2 && (
                             <TextField
                                 placeholder="Search leaves..."
@@ -631,7 +641,7 @@ const Leaves = () => {
                                     ),
                                 }}
                                 sx={{
-                                    width: 280,
+                                    width: { xs: '100%', sm: 280 },
                                     bgcolor: 'background.paper',
                                     borderRadius: 2,
                                     '& .MuiOutlinedInput-root': {
@@ -648,7 +658,10 @@ const Leaves = () => {
                                 borderRadius: '14px',
                                 border: '1px solid',
                                 borderColor: theme.palette.mode === 'dark' ? alpha('#fff', 0.1) : 'divider',
-                                gap: 0.5
+                                gap: 0.5,
+                                overflowX: 'auto',
+                                maxWidth: '100%',
+                                '&::-webkit-scrollbar': { display: 'none' }
                             }}
                         >
                             {tabs.map((item) => (
@@ -659,27 +672,31 @@ const Leaves = () => {
                                     size="small"
                                     sx={{
                                         borderRadius: '10px',
-                                        px: 2.5,
+                                        px: { xs: 1.5, sm: 2.5 },
                                         py: 0.8,
                                         textTransform: 'none',
                                         fontWeight: activeTab === item.value ? 700 : 600,
                                         fontSize: '0.85rem',
+                                        whiteSpace: 'nowrap',
                                         color: activeTab === item.value ? 'primary.main' : 'text.secondary',
                                         bgcolor: activeTab === item.value ? 'background.paper' : 'transparent',
                                         boxShadow: activeTab === item.value ? '0px 4px 10px rgba(0,0,0,0.06)' : 'none',
                                         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        minWidth: { xs: 'auto', sm: 64 }, // Allow shrinking on mobile
                                         '&:hover': {
                                             bgcolor: activeTab === item.value ? 'background.paper' : alpha(theme.palette.primary.main, 0.05),
                                             transform: activeTab === item.value ? 'none' : 'translateY(-1px)'
                                         },
                                         '& .MuiButton-startIcon': {
-                                            mr: 1,
+                                            mr: { xs: activeTab === item.value ? 1 : 0, sm: 1 }, // No margin if icon only
                                             color: activeTab === item.value ? 'primary.main' : 'text.disabled',
                                             transition: 'color 0.25s'
                                         }
                                     }}
                                 >
-                                    {item.label}
+                                    <Box component="span" sx={{ display: { xs: activeTab === item.value ? 'block' : 'none', sm: 'block' } }}>
+                                        {item.label}
+                                    </Box>
                                 </Button>
                             ))}
                         </Box>
@@ -690,87 +707,187 @@ const Leaves = () => {
             <Box sx={{ mt: 3 }}>
                 {/* Approvals Tab (3) - Table View */}
                 {activeTab === 3 && (
-                    <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 3 }}>
-                        <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                    isMobile ? (
+                        <Stack spacing={2}>
+                            {/* Search bar for mobile */}
                             <TextField
                                 placeholder="Search approvals..."
                                 size="small"
+                                fullWidth
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                sx={{ minWidth: 300 }}
-                            />
-                        </Box>
-                        <Box sx={{
-                            height: 565,
-                            width: '100%',
-                            '& .MuiDataGrid-root': {
-                                border: 'none',
-                                '& .MuiDataGrid-main': {
-                                    borderRadius: 0
-                                },
-                                '& .MuiDataGrid-cell': {
-                                    borderBottom: '1px solid',
-                                    borderColor: 'divider',
-                                    fontSize: '0.875rem',
-                                    '&:focus': {
-                                        outline: 'none'
-                                    },
-                                    '&:focus-within': {
-                                        outline: 'none'
-                                    }
-                                },
-                                '& .MuiDataGrid-columnHeader': {
-                                    backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
-                                    color: 'text.secondary',
-                                    fontWeight: 700,
-                                    fontSize: '0.75rem',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '1px',
-                                    '&:focus': {
-                                        outline: 'none'
-                                    },
-                                    '&:focus-within': {
-                                        outline: 'none'
-                                    }
-                                },
-                                '& .MuiDataGrid-row:hover': {
-                                    backgroundColor: (theme) => theme.palette.action.hover,
-                                },
-                                '& .MuiDataGrid-columnSeparator': {
-                                    display: 'none'
-                                },
-                                // Custom Scrollbar
-                                '& ::-webkit-scrollbar': {
-                                    width: 8,
-                                    height: 8,
-                                },
-                                '& ::-webkit-scrollbar-track': {
-                                    backgroundColor: 'transparent',
-                                },
-                                '& ::-webkit-scrollbar-thumb': {
-                                    backgroundColor: (theme) => theme.palette.divider,
-                                    borderRadius: 4,
-                                    '&:hover': {
-                                        backgroundColor: (theme) => theme.palette.text.disabled,
-                                    },
-                                },
-                            }
-                        }}>
-                            <DataGrid
-                                rows={filteredLeaves}
-                                columns={columns}
-                                loading={isLoadingPendingLeaves}
-                                pageSizeOptions={[10, 25, 50]}
-                                initialState={{
-                                    pagination: { paginationModel: { page: 0, pageSize: 10 } },
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <Search fontSize="small" sx={{ color: 'text.secondary' }} />
+                                        </InputAdornment>
+                                    ),
                                 }}
-                                disableRowSelectionOnClick
-                                density="compact"
-                                rowHeight={52}
-                                columnHeaderHeight={48}
+                                sx={{ bgcolor: 'background.paper', borderRadius: 2 }}
                             />
-                        </Box>
-                    </Card>
+
+                            {/* Mobile Approval Cards */}
+                            {filteredLeaves.map((leave) => {
+                                const status = leave.status?.toUpperCase() || 'PENDING';
+                                let statusColor = 'warning';
+                                if (status === 'APPROVED') statusColor = 'success';
+                                if (status === 'REJECTED') statusColor = 'error';
+
+                                return (
+                                    <Card key={leave.id} sx={{ p: 2, borderRadius: 3, boxShadow: theme.shadows[2] }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
+                                            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                                                <Avatar sx={{ width: 40, height: 40, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', fontWeight: 700 }}>
+                                                    {leave.employee_name?.charAt(0) || 'U'}
+                                                </Avatar>
+                                                <Box>
+                                                    <Typography variant="subtitle2" fontWeight={700}>
+                                                        {leave.employee_name}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {leave.designation || 'Employee'}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+                                            <Chip
+                                                label={status}
+                                                size="small"
+                                                color={statusColor}
+                                                variant={status === 'PENDING' ? 'filled' : 'outlined'}
+                                                sx={{ height: 24, fontSize: '0.7rem', fontWeight: 700 }}
+                                            />
+                                        </Box>
+
+                                        <Divider sx={{ my: 1.5, borderStyle: 'dashed' }} />
+
+                                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
+                                            <Box>
+                                                <Typography variant="caption" color="text.secondary" fontWeight={600}>TYPE</Typography>
+                                                <Typography variant="body2" fontWeight={600}>{leave.leave_type}</Typography>
+                                            </Box>
+                                            <Box>
+                                                <Typography variant="caption" color="text.secondary" fontWeight={600}>DURATION</Typography>
+                                                <Typography variant="body2" fontWeight={600}>{leave.total_days} Days</Typography>
+                                            </Box>
+                                            <Box sx={{ gridColumn: 'span 2' }}>
+                                                <Typography variant="caption" color="text.secondary" fontWeight={600}>DATES</Typography>
+                                                <Typography variant="body2" fontWeight={600}>
+                                                    {format(new Date(leave.start_date), 'd MMM')} - {format(new Date(leave.end_date), 'd MMM yyyy')}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+
+                                        {status === 'PENDING' && (
+                                            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                                                <Button
+                                                    fullWidth
+                                                    variant="contained"
+                                                    color="success"
+                                                    size="small"
+                                                    onClick={() => handleApprove(leave.id)}
+                                                    disabled={isUpdatingStatus}
+                                                >
+                                                    Approve
+                                                </Button>
+                                                <Button
+                                                    fullWidth
+                                                    variant="outlined"
+                                                    color="error"
+                                                    size="small"
+                                                    onClick={() => handleRejectClick(leave.id)}
+                                                    disabled={isUpdatingStatus}
+                                                >
+                                                    Reject
+                                                </Button>
+                                            </Box>
+                                        )}
+                                    </Card>
+                                );
+                            })}
+                        </Stack>
+                    ) : (
+                        <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 3 }}>
+                            <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                                <TextField
+                                    placeholder="Search approvals..."
+                                    size="small"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    sx={{ minWidth: { xs: '100%', sm: 300 } }}
+                                />
+                            </Box>
+                            <Box sx={{
+                                height: 565,
+                                width: '100%',
+                                '& .MuiDataGrid-root': {
+                                    border: 'none',
+                                    '& .MuiDataGrid-main': {
+                                        borderRadius: 0
+                                    },
+                                    '& .MuiDataGrid-cell': {
+                                        borderBottom: '1px solid',
+                                        borderColor: 'divider',
+                                        fontSize: '0.875rem',
+                                        '&:focus': {
+                                            outline: 'none'
+                                        },
+                                        '&:focus-within': {
+                                            outline: 'none'
+                                        }
+                                    },
+                                    '& .MuiDataGrid-columnHeader': {
+                                        backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
+                                        color: 'text.secondary',
+                                        fontWeight: 700,
+                                        fontSize: '0.75rem',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '1px',
+                                        '&:focus': {
+                                            outline: 'none'
+                                        },
+                                        '&:focus-within': {
+                                            outline: 'none'
+                                        }
+                                    },
+                                    '& .MuiDataGrid-row:hover': {
+                                        backgroundColor: (theme) => theme.palette.action.hover,
+                                    },
+                                    '& .MuiDataGrid-columnSeparator': {
+                                        display: 'none'
+                                    },
+                                    // Custom Scrollbar
+                                    '& ::-webkit-scrollbar': {
+                                        width: 8,
+                                        height: 8,
+                                    },
+                                    '& ::-webkit-scrollbar-track': {
+                                        backgroundColor: 'transparent',
+                                    },
+                                    '& ::-webkit-scrollbar-thumb': {
+                                        backgroundColor: (theme) => theme.palette.divider,
+                                        borderRadius: 4,
+                                        '&:hover': {
+                                            backgroundColor: (theme) => theme.palette.text.disabled,
+                                        },
+                                    },
+                                }
+                            }}>
+                                <DataGrid
+                                    rows={filteredLeaves}
+                                    columns={columns}
+                                    loading={isLoadingPendingLeaves}
+                                    pageSizeOptions={[10, 25, 50]}
+                                    initialState={{
+                                        pagination: { paginationModel: { page: 0, pageSize: 10 } },
+                                    }}
+                                    disableRowSelectionOnClick
+                                    density="compact"
+                                    rowHeight={52}
+                                    columnHeaderHeight={48}
+                                />
+                            </Box>
+                        </Card>
+                    )
                 )}
 
                 {/* History / My Leaves Tab (2) - Month-wise Card View */}
@@ -1038,14 +1155,12 @@ const Leaves = () => {
                         }}>
                             {/* Header with Submit Button */}
                             <Box sx={{
-                                p: 1.5,
+                                p: 0.5,
                                 px: 2,
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
                                 bgcolor: alpha(theme.palette.primary.main, 0.05),
-                                borderBottom: '1px solid',
-                                borderColor: 'divider'
                             }}>
                                 <Box>
                                     <Typography variant="subtitle1" fontWeight={700} color="primary.main">
@@ -1055,21 +1170,6 @@ const Leaves = () => {
                                         Fill details below
                                     </Typography>
                                 </Box>
-                                <Button
-                                    variant="contained"
-                                    size="small"
-                                    onClick={handleSubmit}
-                                    disabled={!formData.leave_type || !formData.start_date}
-                                    sx={{
-                                        px: 3,
-                                        borderRadius: 2,
-                                        textTransform: 'none',
-                                        fontWeight: 600,
-                                        boxShadow: 'none'
-                                    }}
-                                >
-                                    Submit Request
-                                </Button>
                             </Box>
 
                             <CardContent sx={{ p: 2.5 }}>
@@ -1081,9 +1181,10 @@ const Leaves = () => {
 
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
-                                    {/* Row 1: Type & Dates */}
-                                    <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                                        <Box sx={{ flex: 1 }}>
+                                    {/* Grid Layout for Form */}
+                                    <Grid container spacing={2}>
+                                        {/* Row 1: Type & Dates */}
+                                        <Grid item xs={12} md={4}>
                                             <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
                                                 LEAVE TYPE
                                             </Typography>
@@ -1130,9 +1231,9 @@ const Leaves = () => {
                                                     );
                                                 })}
                                             </TextField>
-                                        </Box>
+                                        </Grid>
 
-                                        <Box sx={{ flex: 1 }}>
+                                        <Grid item xs={12} md={4}>
                                             <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
                                                 START DATE
                                             </Typography>
@@ -1144,9 +1245,9 @@ const Leaves = () => {
                                                     slotProps={{ textField: { fullWidth: true, size: 'small' } }}
                                                 />
                                             </LocalizationProvider>
-                                        </Box>
+                                        </Grid>
 
-                                        <Box sx={{ flex: 1 }}>
+                                        <Grid item xs={12} md={4}>
                                             <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
                                                 END DATE
                                             </Typography>
@@ -1159,12 +1260,13 @@ const Leaves = () => {
                                                     slotProps={{ textField: { fullWidth: true, size: 'small' } }}
                                                 />
                                             </LocalizationProvider>
-                                        </Box>
-                                    </Box>
+                                        </Grid>
+                                    </Grid>
 
                                     {/* Row 2: Half Day (Compact) */}
                                     <Box sx={{
                                         display: 'flex',
+                                        flexWrap: 'wrap', // Allow wrapping
                                         alignItems: 'center',
                                         gap: 2,
                                         p: 1.5,
@@ -1204,8 +1306,8 @@ const Leaves = () => {
                                     </Box>
 
                                     {/* Row 3: People (Manager & CC) */}
-                                    <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-                                        <Box sx={{ flex: 1 }}>
+                                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+                                        <Box sx={{ flex: { xs: '1 1 auto', sm: 1 }, minWidth: 0 }}>
                                             <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
                                                 REPORTING TO
                                             </Typography>
@@ -1229,12 +1331,13 @@ const Leaves = () => {
                                             />
                                         </Box>
 
-                                        <Box sx={{ flex: 1 }}>
+                                        <Box sx={{ flex: { xs: '1 1 auto', sm: 1 }, minWidth: 0 }}>
                                             <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
                                                 CC (OPTIONAL)
                                             </Typography>
                                             <Autocomplete
                                                 multiple
+                                                fullWidth
                                                 size="small"
                                                 options={[...(hrEmailsData?.hr_emails || []), ...(hrEmailsData?.manager_emails || [])]}
                                                 getOptionLabel={(option) => option.name}
@@ -1260,6 +1363,7 @@ const Leaves = () => {
                                                 renderInput={(params) => (
                                                     <TextField
                                                         {...params}
+                                                        fullWidth
                                                         placeholder={formData.cc_emails.length === 0 ? "Select HR/Managers" : ""}
                                                     />
                                                 )}
@@ -1282,6 +1386,33 @@ const Leaves = () => {
                                             onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                                             placeholder="Write a brief reason..."
                                         />
+                                    </Box>
+
+                                    {/* Submit Button Section */}
+                                    <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'flex-end' }}>
+                                        <Button
+                                            variant="contained"
+                                            fullWidth={isMobile} // Full width on mobile
+                                            onClick={handleSubmit}
+                                            disabled={!formData.leave_type || !formData.start_date}
+                                            sx={{
+                                                textTransform: 'none',
+                                                fontWeight: 700,
+                                                py: 1,
+                                                px: 4,
+                                                borderRadius: 2.5,
+                                                boxShadow: theme.shadows[4],
+                                                fontSize: '0.9rem',
+                                                bgcolor: theme.palette.primary.light,
+                                                color: 'common.white',
+                                                '&:hover': {
+                                                    bgcolor: theme.palette.primary.main,
+                                                    boxShadow: theme.shadows[6],
+                                                }
+                                            }}
+                                        >
+                                            Submit Request
+                                        </Button>
                                     </Box>
                                 </Box>
                             </CardContent>
