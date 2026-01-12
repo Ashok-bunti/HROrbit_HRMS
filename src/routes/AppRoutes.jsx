@@ -20,7 +20,7 @@ import ForcePasswordChange from '../features/auth/pages/ForcePasswordChange';
 import AdminDashboard from '../features/dashboard/pages/AdminDashboard';
 import UserManagement from '../features/users/pages/UserManagement';
 import EngagementDashboard from '../features/dashboard/pages/EngagementDashboard';
-import Biometric from '../features/attendance/pages/Biometric';
+import BiometricDashboard from '../features/biometric/pages/BiometricDashboard';
 import Roles from '../features/roles/pages/Roles';
 import LeavePolicies from '../features/policies/pages/LeavePolicies';
 
@@ -167,6 +167,14 @@ const AppRoutes = () => {
                     element={
                         <PrivateRoute requiredPermission="attendance:read">
                             <Attendance />
+                        </PrivateRoute>
+                    }
+                />
+                <Route
+                    path="biometric"
+                    element={
+                        <PrivateRoute requiredPermission="biometric:read">
+                            <BiometricDashboard />
                         </PrivateRoute>
                     }
                 />

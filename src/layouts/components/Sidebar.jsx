@@ -139,18 +139,34 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, tog
         });
     }
 
-    /*
-    // Attendance: Manager vs Employee
-    if (can('attendance', 'read')) { // Can view all attendance
-        menuItems.push({ text: 'Attendance Management', icon: <AccessTimeIcon />, path: '/attendance' });
-    }
-    */
+    // Attendance Logic
+    if (can('attendance', 'read')) {
+        const attendanceChildren = [
+            {
+                text: 'General Attendance',
+                icon: <AccessTimeIcon />,
+                path: '/attendance',
+                permission: 'attendance:read',
+            }
+        ].filter(child => !child.permission || can(child.permission.split(':')[0], child.permission.split(':')[1]));
 
-    /*
-    if (can('biometric', 'read')) {
-        menuItems.push({ text: 'Biometric', icon: <FingerprintIcon />, path: '/admin/biometric' });
+        menuItems.push({
+            text: 'Attendance',
+            icon: <AccessTimeIcon />,
+            path: '/attendance',
+            children: attendanceChildren.length > 1 ? attendanceChildren : null
+        });
+
+        // If it only has one child and it's general attendance, we might not want it as a dropdown
+        // But the above logic handles it. If children is null, it displays as a single item.
+        if (attendanceChildren.length === 1 && attendanceChildren[0].path === '/attendance') {
+            // Keep as is, it's already pushed above but with children: null
+        }
     }
-    */
+
+    if (can('biometric', 'read')) {
+        menuItems.push({ text: 'Biometric', icon: <FingerprintIcon />, path: '/biometric' });
+    }
 
     /*
     if (can('surveys', 'read') || can('feedback', 'read')) {
