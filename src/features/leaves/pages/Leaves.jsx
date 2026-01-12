@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Box,
     Typography,
@@ -23,7 +23,10 @@ import {
     Radio,
     Tooltip,
     IconButton,
-    InputAdornment
+    InputAdornment,
+    Autocomplete,
+    useMediaQuery,
+    Avatar
 } from '@mui/material';
 import CustomSnackbar from '../../../components/common/CustomSnackbar';
 import useSnackbar from '../../../hooks/useSnackbar';
@@ -54,6 +57,7 @@ import { usePermissions } from '../../../hooks/usePermissions';
 
 const Leaves = () => {
     const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { can, isAdmin: isUserAdmin, isHR } = usePermissions();
     const { user } = useAuth();
     const [searchTerm, setSearchTerm] = useState('');
@@ -64,8 +68,8 @@ const Leaves = () => {
     const { data: pendingLeavesData, isLoading: isLoadingPendingLeaves } = useGetPendingLeavesQuery({ userId: user?.id }, { skip: !can('leaves', 'update') });
     const { data: leaveTypesData } = useGetAvailableLeaveTypesQuery({ userId: user?.id });
     const { data: managerData, isLoading: isLoadingManager } = useGetMyManagerQuery();
-    const { data: approversData, isLoading: isLoadingApprovers } = useGetApproversQuery();
     const { data: hrEmailsData } = useGetHRManagerEmailsQuery();
+    const { data: approversData, isLoading: isLoadingApprovers } = useGetApproversQuery();
     const { data: balancesData } = useGetMyBalancesQuery({ userId: user?.id, year: new Date().getFullYear() });
     // New: fetch all leaves for manager approvals view
     // Use pending leaves for manager approvals instead of filtering all leaves
@@ -78,7 +82,7 @@ const Leaves = () => {
     const [deleteLeave, { isLoading: isDeleting }] = useDeleteLeaveMutation();
 
     const { snackbar, showSnackbar, hideSnackbar } = useSnackbar();
-    const [activeTab, setActiveTab] = useState(0); // 0: History, 1: Apply, 2: Policies
+    const [activeTab, setActiveTab] = useState(1); // Default to Balances (1) for employees
     const [formData, setFormData] = useState({
         leave_type: '',
         start_date: null,
@@ -286,18 +290,25 @@ const Leaves = () => {
     // Strictly restrict Approvals tab to Managers, HR, Admins, or those with 'manage' permission
     const isManager = user?.role === 'manager' || isAdmin || can('leaves', 'manage');
 
-    // Employee: Apply (0), Balances (1), History (2)
-    // Manager: Apply (0), Balances (1), My Leaves (2), Approvals (3)
+    // Auto-switch to Approvals tab for managers
+    useEffect(() => {
+        if (isManager) {
+            setActiveTab(3);
+        }
+    }, [isManager]);
+
+    // Employee: Balances (1) -> Apply (0) -> History (2)
+    // Manager: Approvals (3) -> Balances (1) -> Apply (0) -> My Leaves (2)
     const tabs = isManager
         ? [
-            { label: 'Apply', icon: <PostAdd />, value: 0, data: null },
+            { label: 'Approvals', icon: <VerifiedUser />, value: 3, data: managerApprovals },
             { label: 'Balances', icon: <FactCheck />, value: 1, data: null },
-            { label: 'My Leaves', icon: <History />, value: 2, data: myLeavesData?.leaves },
-            { label: 'Approvals', icon: <VerifiedUser />, value: 3, data: managerApprovals }
+            { label: 'Apply', icon: <PostAdd />, value: 0, data: null },
+            { label: 'My Leaves', icon: <History />, value: 2, data: myLeavesData?.leaves }
         ]
         : [
-            { label: 'Apply', icon: <PostAdd />, value: 0, data: null },
             { label: 'Balances', icon: <FactCheck />, value: 1, data: null },
+            { label: 'Apply', icon: <PostAdd />, value: 0, data: null },
             { label: 'Leave History', icon: <History />, value: 2, data: myLeavesData?.leaves }
         ];
 
@@ -574,13 +585,34 @@ const Leaves = () => {
         (leave.reason || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    const getHeaderContent = () => {
+        if (isManager) {
+            switch (activeTab) {
+                case 0: return { title: "Apply for Leave", subtitle: "Submit a new leave request for approval." };
+                case 1: return { title: "My Leave Balances", subtitle: "View your available, used, and remaining leave balances." };
+                case 2: return { title: "My Leaves", subtitle: "Track your past leave requests and approval status." };
+                case 3: return { title: "Leave Approval", subtitle: "Review and approve/reject team leave requests" };
+                default: return { title: "Leave Management", subtitle: "View and manage employee leave requests." };
+            }
+        } else {
+            switch (activeTab) {
+                case 0: return { title: "Apply for Leave", subtitle: "Submit a new leave request for approval." };
+                case 1: return { title: "My Leave Balances", subtitle: "View your available, used, and remaining leave balances." };
+                case 2: return { title: "Leave History", subtitle: "Track your past leave requests and approval status." };
+                default: return { title: "My Leaves", subtitle: "View your leave balance, apply for leave, and track request status." };
+            }
+        }
+    };
+
+    const headerData = getHeaderContent();
+
     return (
         <Box sx={{ pb: 4 }}>
             <PageHeader
                 title={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <Typography variant="h4" fontWeight={800} sx={{ letterSpacing: '-0.02em', color: 'text.primary' }}>
-                            {!isManager ? "My Leaves" : "Leave Management"}
+                            {headerData.title}
                         </Typography>
                         {activeTab === 2 && (
                             <>
@@ -592,12 +624,9 @@ const Leaves = () => {
                         )}
                     </Box>
                 }
-                subtitle={!isManager
-                    ? "View your leave balance, apply for leave, and track request status."
-                    : "View and manage employee leave requests."
-                }
+                subtitle={headerData.subtitle}
                 action={
-                    <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, alignItems: 'center', width: { xs: '100%', sm: 'auto' } }}>
                         {activeTab === 2 && (
                             <TextField
                                 placeholder="Search leaves..."
@@ -612,7 +641,7 @@ const Leaves = () => {
                                     ),
                                 }}
                                 sx={{
-                                    width: 280,
+                                    width: { xs: '100%', sm: 280 },
                                     bgcolor: 'background.paper',
                                     borderRadius: 2,
                                     '& .MuiOutlinedInput-root': {
@@ -629,7 +658,10 @@ const Leaves = () => {
                                 borderRadius: '14px',
                                 border: '1px solid',
                                 borderColor: theme.palette.mode === 'dark' ? alpha('#fff', 0.1) : 'divider',
-                                gap: 0.5
+                                gap: 0.5,
+                                overflowX: 'auto',
+                                maxWidth: '100%',
+                                '&::-webkit-scrollbar': { display: 'none' }
                             }}
                         >
                             {tabs.map((item) => (
@@ -640,27 +672,31 @@ const Leaves = () => {
                                     size="small"
                                     sx={{
                                         borderRadius: '10px',
-                                        px: 2.5,
+                                        px: { xs: 1.5, sm: 2.5 },
                                         py: 0.8,
                                         textTransform: 'none',
                                         fontWeight: activeTab === item.value ? 700 : 600,
                                         fontSize: '0.85rem',
+                                        whiteSpace: 'nowrap',
                                         color: activeTab === item.value ? 'primary.main' : 'text.secondary',
                                         bgcolor: activeTab === item.value ? 'background.paper' : 'transparent',
                                         boxShadow: activeTab === item.value ? '0px 4px 10px rgba(0,0,0,0.06)' : 'none',
                                         transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                        minWidth: { xs: 'auto', sm: 64 }, // Allow shrinking on mobile
                                         '&:hover': {
                                             bgcolor: activeTab === item.value ? 'background.paper' : alpha(theme.palette.primary.main, 0.05),
                                             transform: activeTab === item.value ? 'none' : 'translateY(-1px)'
                                         },
                                         '& .MuiButton-startIcon': {
-                                            mr: 1,
+                                            mr: { xs: activeTab === item.value ? 1 : 0, sm: 1 }, // No margin if icon only
                                             color: activeTab === item.value ? 'primary.main' : 'text.disabled',
                                             transition: 'color 0.25s'
                                         }
                                     }}
                                 >
-                                    {item.label}
+                                    <Box component="span" sx={{ display: { xs: activeTab === item.value ? 'block' : 'none', sm: 'block' } }}>
+                                        {item.label}
+                                    </Box>
                                 </Button>
                             ))}
                         </Box>
@@ -671,87 +707,187 @@ const Leaves = () => {
             <Box sx={{ mt: 3 }}>
                 {/* Approvals Tab (3) - Table View */}
                 {activeTab === 3 && (
-                    <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 3 }}>
-                        <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                    isMobile ? (
+                        <Stack spacing={2}>
+                            {/* Search bar for mobile */}
                             <TextField
                                 placeholder="Search approvals..."
                                 size="small"
+                                fullWidth
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                sx={{ minWidth: 300 }}
-                            />
-                        </Box>
-                        <Box sx={{
-                            height: 565,
-                            width: '100%',
-                            '& .MuiDataGrid-root': {
-                                border: 'none',
-                                '& .MuiDataGrid-main': {
-                                    borderRadius: 0
-                                },
-                                '& .MuiDataGrid-cell': {
-                                    borderBottom: '1px solid',
-                                    borderColor: 'divider',
-                                    fontSize: '0.875rem',
-                                    '&:focus': {
-                                        outline: 'none'
-                                    },
-                                    '&:focus-within': {
-                                        outline: 'none'
-                                    }
-                                },
-                                '& .MuiDataGrid-columnHeader': {
-                                    backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
-                                    color: 'text.secondary',
-                                    fontWeight: 700,
-                                    fontSize: '0.75rem',
-                                    textTransform: 'uppercase',
-                                    letterSpacing: '1px',
-                                    '&:focus': {
-                                        outline: 'none'
-                                    },
-                                    '&:focus-within': {
-                                        outline: 'none'
-                                    }
-                                },
-                                '& .MuiDataGrid-row:hover': {
-                                    backgroundColor: (theme) => theme.palette.action.hover,
-                                },
-                                '& .MuiDataGrid-columnSeparator': {
-                                    display: 'none'
-                                },
-                                // Custom Scrollbar
-                                '& ::-webkit-scrollbar': {
-                                    width: 8,
-                                    height: 8,
-                                },
-                                '& ::-webkit-scrollbar-track': {
-                                    backgroundColor: 'transparent',
-                                },
-                                '& ::-webkit-scrollbar-thumb': {
-                                    backgroundColor: (theme) => theme.palette.divider,
-                                    borderRadius: 4,
-                                    '&:hover': {
-                                        backgroundColor: (theme) => theme.palette.text.disabled,
-                                    },
-                                },
-                            }
-                        }}>
-                            <DataGrid
-                                rows={filteredLeaves}
-                                columns={columns}
-                                loading={isLoadingPendingLeaves}
-                                pageSizeOptions={[10, 25, 50]}
-                                initialState={{
-                                    pagination: { paginationModel: { page: 0, pageSize: 10 } },
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <Search fontSize="small" sx={{ color: 'text.secondary' }} />
+                                        </InputAdornment>
+                                    ),
                                 }}
-                                disableRowSelectionOnClick
-                                density="compact"
-                                rowHeight={52}
-                                columnHeaderHeight={48}
+                                sx={{ bgcolor: 'background.paper', borderRadius: 2 }}
                             />
-                        </Box>
-                    </Card>
+
+                            {/* Mobile Approval Cards */}
+                            {filteredLeaves.map((leave) => {
+                                const status = leave.status?.toUpperCase() || 'PENDING';
+                                let statusColor = 'warning';
+                                if (status === 'APPROVED') statusColor = 'success';
+                                if (status === 'REJECTED') statusColor = 'error';
+
+                                return (
+                                    <Card key={leave.id} sx={{ p: 2, borderRadius: 3, boxShadow: theme.shadows[2] }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
+                                            <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                                                <Avatar sx={{ width: 40, height: 40, bgcolor: alpha(theme.palette.primary.main, 0.1), color: 'primary.main', fontWeight: 700 }}>
+                                                    {leave.employee_name?.charAt(0) || 'U'}
+                                                </Avatar>
+                                                <Box>
+                                                    <Typography variant="subtitle2" fontWeight={700}>
+                                                        {leave.employee_name}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {leave.designation || 'Employee'}
+                                                    </Typography>
+                                                </Box>
+                                            </Box>
+                                            <Chip
+                                                label={status}
+                                                size="small"
+                                                color={statusColor}
+                                                variant={status === 'PENDING' ? 'filled' : 'outlined'}
+                                                sx={{ height: 24, fontSize: '0.7rem', fontWeight: 700 }}
+                                            />
+                                        </Box>
+
+                                        <Divider sx={{ my: 1.5, borderStyle: 'dashed' }} />
+
+                                        <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mb: 2 }}>
+                                            <Box>
+                                                <Typography variant="caption" color="text.secondary" fontWeight={600}>TYPE</Typography>
+                                                <Typography variant="body2" fontWeight={600}>{leave.leave_type}</Typography>
+                                            </Box>
+                                            <Box>
+                                                <Typography variant="caption" color="text.secondary" fontWeight={600}>DURATION</Typography>
+                                                <Typography variant="body2" fontWeight={600}>{leave.total_days} Days</Typography>
+                                            </Box>
+                                            <Box sx={{ gridColumn: 'span 2' }}>
+                                                <Typography variant="caption" color="text.secondary" fontWeight={600}>DATES</Typography>
+                                                <Typography variant="body2" fontWeight={600}>
+                                                    {format(new Date(leave.start_date), 'd MMM')} - {format(new Date(leave.end_date), 'd MMM yyyy')}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+
+                                        {status === 'PENDING' && (
+                                            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                                                <Button
+                                                    fullWidth
+                                                    variant="contained"
+                                                    color="success"
+                                                    size="small"
+                                                    onClick={() => handleApprove(leave.id)}
+                                                    disabled={isUpdatingStatus}
+                                                >
+                                                    Approve
+                                                </Button>
+                                                <Button
+                                                    fullWidth
+                                                    variant="outlined"
+                                                    color="error"
+                                                    size="small"
+                                                    onClick={() => handleRejectClick(leave.id)}
+                                                    disabled={isUpdatingStatus}
+                                                >
+                                                    Reject
+                                                </Button>
+                                            </Box>
+                                        )}
+                                    </Card>
+                                );
+                            })}
+                        </Stack>
+                    ) : (
+                        <Card sx={{ overflow: 'hidden', boxShadow: theme.shadows[2], borderRadius: 3 }}>
+                            <Box sx={{ p: 2, borderBottom: '1px solid', borderColor: 'divider' }}>
+                                <TextField
+                                    placeholder="Search approvals..."
+                                    size="small"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    sx={{ minWidth: { xs: '100%', sm: 300 } }}
+                                />
+                            </Box>
+                            <Box sx={{
+                                height: 565,
+                                width: '100%',
+                                '& .MuiDataGrid-root': {
+                                    border: 'none',
+                                    '& .MuiDataGrid-main': {
+                                        borderRadius: 0
+                                    },
+                                    '& .MuiDataGrid-cell': {
+                                        borderBottom: '1px solid',
+                                        borderColor: 'divider',
+                                        fontSize: '0.875rem',
+                                        '&:focus': {
+                                            outline: 'none'
+                                        },
+                                        '&:focus-within': {
+                                            outline: 'none'
+                                        }
+                                    },
+                                    '& .MuiDataGrid-columnHeader': {
+                                        backgroundColor: (theme) => theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
+                                        color: 'text.secondary',
+                                        fontWeight: 700,
+                                        fontSize: '0.75rem',
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '1px',
+                                        '&:focus': {
+                                            outline: 'none'
+                                        },
+                                        '&:focus-within': {
+                                            outline: 'none'
+                                        }
+                                    },
+                                    '& .MuiDataGrid-row:hover': {
+                                        backgroundColor: (theme) => theme.palette.action.hover,
+                                    },
+                                    '& .MuiDataGrid-columnSeparator': {
+                                        display: 'none'
+                                    },
+                                    // Custom Scrollbar
+                                    '& ::-webkit-scrollbar': {
+                                        width: 8,
+                                        height: 8,
+                                    },
+                                    '& ::-webkit-scrollbar-track': {
+                                        backgroundColor: 'transparent',
+                                    },
+                                    '& ::-webkit-scrollbar-thumb': {
+                                        backgroundColor: (theme) => theme.palette.divider,
+                                        borderRadius: 4,
+                                        '&:hover': {
+                                            backgroundColor: (theme) => theme.palette.text.disabled,
+                                        },
+                                    },
+                                }
+                            }}>
+                                <DataGrid
+                                    rows={filteredLeaves}
+                                    columns={columns}
+                                    loading={isLoadingPendingLeaves}
+                                    pageSizeOptions={[10, 25, 50]}
+                                    initialState={{
+                                        pagination: { paginationModel: { page: 0, pageSize: 10 } },
+                                    }}
+                                    disableRowSelectionOnClick
+                                    density="compact"
+                                    rowHeight={52}
+                                    columnHeaderHeight={48}
+                                />
+                            </Box>
+                        </Card>
+                    )
                 )}
 
                 {/* History / My Leaves Tab (2) - Month-wise Card View */}
@@ -1009,42 +1145,63 @@ const Leaves = () => {
                 {/* Content Area */}
                 {/* Apply Tab (0) - Vertical Compressed */}
                 {activeTab === 0 && (
-                    <Grid container justifyContent="center">
-                        <Grid item xs={12} md={8} lg={6}>
-                            <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', maxWidth: 600, mx: 'auto' }}>
-                                <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: alpha(theme.palette.primary.main, 0.04) }}>
-                                    <Box>
-                                        <Typography variant="h6" fontWeight={700}>New Leave Request</Typography>
-                                        <Typography variant="caption" color="text.secondary">Balances update automatically</Typography>
-                                    </Box>
-                                    <Button onClick={() => setActiveTab(1)} variant="outlined" size="small" sx={{ borderRadius: 2 }}>Check Balances</Button>
+                    <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+                        <Card sx={{
+                            borderRadius: 2,
+                            boxShadow: theme.shadows[2],
+                            overflow: 'visible',
+                            border: '1px solid',
+                            borderColor: 'divider'
+                        }}>
+                            {/* Header with Submit Button */}
+                            <Box sx={{
+                                p: 0.5,
+                                px: 2,
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                bgcolor: alpha(theme.palette.primary.main, 0.05),
+                            }}>
+                                <Box>
+                                    <Typography variant="subtitle1" fontWeight={700} color="primary.main">
+                                        New Leave Request
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary">
+                                        Fill details below
+                                    </Typography>
                                 </Box>
+                            </Box>
 
-                                <Box sx={{ p: 3 }}>
-                                    {formError && <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{formError}</Alert>}
+                            <CardContent sx={{ p: 2.5 }}>
+                                {formError && (
+                                    <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setFormError('')}>
+                                        {formError}
+                                    </Alert>
+                                )}
 
-                                    <Stack spacing={2.5}>
-                                        <Box>
-                                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>LEAVE TYPE</Typography>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+
+                                    {/* Grid Layout for Form */}
+                                    <Grid container spacing={2}>
+                                        {/* Row 1: Type & Dates */}
+                                        <Grid item xs={12} md={4}>
+                                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                                                LEAVE TYPE
+                                            </Typography>
                                             <TextField
                                                 select
                                                 fullWidth
                                                 size="small"
                                                 value={formData.leave_type}
-                                                onChange={(e) =>
-                                                    setFormData({ ...formData, leave_type: e.target.value })
-                                                }
-                                                SelectProps={{
-                                                    displayEmpty: true,
-                                                }}
+                                                onChange={(e) => setFormData({ ...formData, leave_type: e.target.value })}
+                                                placeholder="Select"
+                                                SelectProps={{ displayEmpty: true }}
+                                                sx={{ '& .MuiOutlinedInput-root': { bgcolor: alpha(theme.palette.background.paper, 0.5) } }}
                                             >
-                                                {/* Placeholder */}
                                                 <MenuItem value="" disabled>
-                                                    Select Leave Type
+                                                    <Typography variant="body2" color="text.secondary">Select Leave Type</Typography>
                                                 </MenuItem>
-
                                                 {(leaveTypesData?.leave_types || []).map((type) => {
-                                                    // Logic: Calculate Available Dynamically (same as Balances tab)
                                                     let allocated = parseFloat(type.allocated || 0);
                                                     const policy = type.policy_config || {};
                                                     if (allocated === 0 && policy) {
@@ -1062,147 +1219,206 @@ const Leaves = () => {
 
                                                     return (
                                                         <MenuItem key={type.leave_type} value={type.leave_type}>
-                                                            {type.display_name} ({available})
+                                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                                                                <Typography variant="body2">{type.display_name}</Typography>
+                                                                <Chip
+                                                                    label={available}
+                                                                    size="small"
+                                                                    sx={{ height: 16, fontSize: '0.65rem', bgcolor: available > 0 ? alpha(theme.palette.success.main, 0.1) : alpha(theme.palette.error.main, 0.1), color: available > 0 ? 'success.main' : 'error.main' }}
+                                                                />
+                                                            </Box>
                                                         </MenuItem>
                                                     );
                                                 })}
                                             </TextField>
-
-                                        </Box>
-
-                                        <Grid container spacing={2}>
-                                            <Grid item xs={6}>
-                                                <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>START DATE</Typography>
-                                                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                                    <DatePicker
-                                                        value={formData.start_date}
-                                                        onChange={(newValue) => setFormData({ ...formData, start_date: newValue })}
-                                                        slotProps={{ textField: { fullWidth: true, size: 'small' } }}
-                                                        disablePast
-                                                    />
-                                                </LocalizationProvider>
-                                            </Grid>
-                                            <Grid item xs={6}>
-                                                <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>END DATE</Typography>
-                                                <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                                    <DatePicker
-                                                        value={formData.end_date}
-                                                        onChange={(newValue) => setFormData({ ...formData, end_date: newValue })}
-                                                        slotProps={{ textField: { fullWidth: true, size: 'small' } }}
-                                                        disabled={formData.is_half_day}
-                                                        disablePast
-                                                    />
-                                                </LocalizationProvider>
-                                            </Grid>
                                         </Grid>
 
-                                        <Box sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
-                                            <FormControlLabel
-                                                control={
-                                                    <Switch
-                                                        size="small"
-                                                        checked={formData.is_half_day}
-                                                        onChange={(e) => {
-                                                            const isHalfDay = e.target.checked;
-                                                            setFormData({
-                                                                ...formData,
-                                                                is_half_day: isHalfDay,
-                                                                end_date: isHalfDay ? formData.start_date : formData.end_date
-                                                            });
-                                                        }}
-                                                    />
-                                                }
-                                                label={<Typography variant="body2" fontWeight={600}>Half Day Leave</Typography>}
-                                            />
+                                        <Grid item xs={12} md={4}>
+                                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                                                START DATE
+                                            </Typography>
+                                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                                <DatePicker
+                                                    value={formData.start_date}
+                                                    onChange={(newValue) => setFormData({ ...formData, start_date: newValue })}
+                                                    disablePast={formData.leave_type !== 'SL'}
+                                                    slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+                                                />
+                                            </LocalizationProvider>
+                                        </Grid>
 
-                                            {formData.is_half_day && (
-                                                <Box sx={{ mt: 1, ml: 1 }}>
-                                                    <RadioGroup
-                                                        row
-                                                        value={formData.half_day_type}
-                                                        onChange={(e) => setFormData({ ...formData, half_day_type: e.target.value })}
-                                                    >
-                                                        <FormControlLabel value="FIRST_HALF" control={<Radio size="small" />} label={<Typography variant="caption">First Half</Typography>} />
-                                                        <FormControlLabel value="SECOND_HALF" control={<Radio size="small" />} label={<Typography variant="caption">Second Half</Typography>} />
-                                                    </RadioGroup>
-                                                </Box>
-                                            )}
-                                        </Box>
+                                        <Grid item xs={12} md={4}>
+                                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                                                END DATE
+                                            </Typography>
+                                            <LocalizationProvider dateAdapter={AdapterDateFns}>
+                                                <DatePicker
+                                                    value={formData.is_half_day ? formData.start_date : formData.end_date}
+                                                    onChange={(newValue) => setFormData({ ...formData, end_date: newValue })}
+                                                    minDate={formData.start_date}
+                                                    disabled={!formData.start_date || formData.is_half_day}
+                                                    slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+                                                />
+                                            </LocalizationProvider>
+                                        </Grid>
+                                    </Grid>
 
-                                        <Box>
-                                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>REPORTING TO</Typography>
+                                    {/* Row 2: Half Day (Compact) */}
+                                    <Box sx={{
+                                        display: 'flex',
+                                        flexWrap: 'wrap', // Allow wrapping
+                                        alignItems: 'center',
+                                        gap: 2,
+                                        p: 1.5,
+                                        bgcolor: alpha(theme.palette.background.default, 0.5),
+                                        borderRadius: 2,
+                                        border: '1px solid',
+                                        borderColor: 'divider',
+                                        width: 'fit-content'
+                                    }}>
+                                        <FormControlLabel
+                                            control={
+                                                <Switch
+                                                    size="small"
+                                                    checked={formData.is_half_day}
+                                                    onChange={(e) => setFormData({
+                                                        ...formData,
+                                                        is_half_day: e.target.checked,
+                                                        end_date: e.target.checked ? formData.start_date : formData.end_date
+                                                    })}
+                                                />
+                                            }
+                                            label={<Typography variant="caption" fontWeight={600}>Half Day</Typography>}
+                                            sx={{ mr: 2 }}
+                                        />
+
+                                        {formData.is_half_day && (
+                                            <RadioGroup
+                                                row
+                                                value={formData.half_day_type}
+                                                onChange={(e) => setFormData({ ...formData, half_day_type: e.target.value })}
+                                                sx={{ gap: 2 }}
+                                            >
+                                                <FormControlLabel value="FIRST_HALF" control={<Radio size="small" sx={{ p: 0.5 }} />} label={<Typography variant="caption">1st Half</Typography>} />
+                                                <FormControlLabel value="SECOND_HALF" control={<Radio size="small" sx={{ p: 0.5 }} />} label={<Typography variant="caption">2nd Half</Typography>} />
+                                            </RadioGroup>
+                                        )}
+                                    </Box>
+
+                                    {/* Row 3: People (Manager & CC) */}
+                                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+                                        <Box sx={{ flex: { xs: '1 1 auto', sm: 1 }, minWidth: 0 }}>
+                                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                                                REPORTING TO
+                                            </Typography>
                                             <TextField
                                                 fullWidth
                                                 size="small"
                                                 value={
-                                                    (() => {
-                                                        if (isLoadingManager || isLoadingApprovers) return "Loading...";
-                                                        const clean = (val) => {
-                                                            if (!val) return null;
-                                                            const str = String(val).trim();
-                                                            const l = str.toLowerCase();
-                                                            if (l === 'undefined' || l === 'null' || l === 'undefined undefined' || l === 'null null') return null;
-                                                            if (l.includes('undefined') || l.includes('null')) return null;
-                                                            return str === '' ? null : str;
-                                                        };
-
-                                                        // 1. Manager Name from backend
-                                                        const bName = clean(managerData?.manager?.name);
-                                                        if (bName) return bName;
-
-                                                        // 2. Approvers List Lookup
-                                                        if (formData.applied_to && approversData?.approvers) {
-                                                            const appr = approversData.approvers.find(a => Number(a.id) === Number(formData.applied_to));
-                                                            const aName = clean(appr?.name);
-                                                            if (aName) return aName;
-                                                        }
-
-                                                        // 3. Email fallback
-                                                        if (managerData?.manager?.email) {
-                                                            const parts = managerData.manager.email.split('@')[0].split(/[._]/);
-                                                            return parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
-                                                        }
-
-                                                        return "Not Assigned";
-                                                    })()
+                                                    isLoadingManager ? "Loading..." :
+                                                        (managerData?.manager?.name ||
+                                                            (formData.applied_to && approversData?.approvers?.find(a => a.id === formData.applied_to)?.name) ||
+                                                            '')
                                                 }
                                                 InputProps={{
                                                     readOnly: true,
-                                                    disabled: true
                                                 }}
-                                                helperText="Your Reporting Manager (Auto-assigned)"
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': { bgcolor: alpha(theme.palette.background.paper, 0.5) },
+                                                    '& .MuiInputBase-input': { cursor: 'default', color: 'text.primary' }
+                                                }}
+                                                placeholder="Not Assigned"
                                             />
                                         </Box>
 
-                                        <Box>
-                                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>REASON</Typography>
-                                            <TextField
+                                        <Box sx={{ flex: { xs: '1 1 auto', sm: 1 }, minWidth: 0 }}>
+                                            <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                                                CC (OPTIONAL)
+                                            </Typography>
+                                            <Autocomplete
+                                                multiple
                                                 fullWidth
-                                                multiline
-                                                rows={2}
                                                 size="small"
-                                                placeholder="Brief explanation..."
-                                                value={formData.reason}
-                                                onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                                                options={[...(hrEmailsData?.hr_emails || []), ...(hrEmailsData?.manager_emails || [])]}
+                                                getOptionLabel={(option) => option.name}
+                                                value={[...(hrEmailsData?.hr_emails || []), ...(hrEmailsData?.manager_emails || [])].filter(
+                                                    option => formData.cc_emails.includes(option.id)
+                                                )}
+                                                onChange={(event, newValue) => {
+                                                    setFormData({
+                                                        ...formData,
+                                                        cc_emails: newValue.map(v => v.id)
+                                                    });
+                                                }}
+                                                renderTags={(value, getTagProps) =>
+                                                    value.map((option, index) => (
+                                                        <Chip
+                                                            label={option.name}
+                                                            size="small"
+                                                            {...getTagProps({ index })}
+                                                            sx={{ height: 20, fontSize: '0.7rem' }}
+                                                        />
+                                                    ))
+                                                }
+                                                renderInput={(params) => (
+                                                    <TextField
+                                                        {...params}
+                                                        fullWidth
+                                                        placeholder={formData.cc_emails.length === 0 ? "Select HR/Managers" : ""}
+                                                    />
+                                                )}
+                                                isOptionEqualToValue={(option, value) => option.id === value.id}
                                             />
                                         </Box>
+                                    </Box>
 
-                                        <Button
+                                    {/* Row 4: Reason */}
+                                    <Box>
+                                        <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                                            REASON
+                                        </Typography>
+                                        <TextField
                                             fullWidth
+                                            multiline
+                                            rows={2}
+                                            size="small"
+                                            value={formData.reason}
+                                            onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
+                                            placeholder="Write a brief reason..."
+                                        />
+                                    </Box>
+
+                                    {/* Submit Button Section */}
+                                    <Box sx={{ mt: 1.5, display: 'flex', justifyContent: 'flex-end' }}>
+                                        <Button
                                             variant="contained"
-                                            size="large"
+                                            fullWidth={isMobile} // Full width on mobile
                                             onClick={handleSubmit}
-                                            sx={{ borderRadius: 2, fontWeight: 700, textTransform: 'none', boxShadow: 'none' }}
+                                            disabled={!formData.leave_type || !formData.start_date}
+                                            sx={{
+                                                textTransform: 'none',
+                                                fontWeight: 700,
+                                                py: 1,
+                                                px: 4,
+                                                borderRadius: 2.5,
+                                                boxShadow: theme.shadows[4],
+                                                fontSize: '0.9rem',
+                                                bgcolor: theme.palette.primary.light,
+                                                color: 'common.white',
+                                                '&:hover': {
+                                                    bgcolor: theme.palette.primary.main,
+                                                    boxShadow: theme.shadows[6],
+                                                }
+                                            }}
                                         >
                                             Submit Request
                                         </Button>
-                                    </Stack>
+                                    </Box>
                                 </Box>
-                            </Card>
-                        </Grid>
-                    </Grid>
+                            </CardContent>
+                        </Card>
+                    </Box>
                 )}
-                {/* Balances Tab (1) */}
                 {/* Balances Tab (1) */}
                 {activeTab === 1 && (
                     <Box>
