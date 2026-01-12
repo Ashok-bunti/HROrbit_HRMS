@@ -471,7 +471,11 @@ const BiometricDashboard = () => {
     const filteredLogs = attendanceData.filter(row =>
         (row.name && row.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (row.employee_code && row.employee_code.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    ).sort((a, b) => {
+        if (a.status === 'Active' && b.status !== 'Active') return -1;
+        if (a.status !== 'Active' && b.status === 'Active') return 1;
+        return 0;
+    });
 
     const paginatedLogs = filteredLogs.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
