@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Box } from '@mui/material';
 import { useAuth } from '../../../context/AuthContext';
 import { useGetAllAttendanceQuery, useClockInMutation, useClockOutMutation, useUpdateAttendanceMutation } from '../../attendance/store/attendanceApi';
 import { useGetLeaveStatsQuery, useGetAllLeavesQuery } from '../../leaves/store/leaveApi';
 import { useGetEmployeeByIdQuery } from '../../employees/store/employeeApi';
 import { useGetEmployeePayslipsQuery } from '../../payroll/store/payrollApi';
+import CustomSnackbar from '../../../components/common/CustomSnackbar';
+import useSnackbar from '../../../hooks/useSnackbar';
 import { format } from 'date-fns';
 
 // Widget Components
@@ -29,6 +31,10 @@ const Dashboard = () => {
     const [clockIn, { isLoading: isClockingIn }] = useClockInMutation();
     const [clockOut, { isLoading: isClockingOut }] = useClockOutMutation();
     const [updateAttendance] = useUpdateAttendanceMutation();
+
+    const { snackbar, showSnackbar, hideSnackbar } = useSnackbar();
+    const [userLocation, setUserLocation] = useState(null);
+    const [isObtainingLocation, setIsObtainingLocation] = useState(false);
 
     // Find today's attendance record - use loose equality for IDs and check multiple date fields
     const todayAttendance = attendanceData?.attendance?.find(
@@ -131,23 +137,73 @@ const Dashboard = () => {
         nextPayDate: 'Pending'
     };
 
+    const getBrowserLocation = () => {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported by your browser'));
+                return;
+            }
+            setIsObtainingLocation(true);
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const loc = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
+                    setUserLocation(loc);
+                    setIsObtainingLocation(false);
+                    resolve(loc);
+                },
+                (err) => {
+                    setIsObtainingLocation(false);
+                    reject(err);
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+            );
+        });
+    };
+
     // Handlers
     const handleClockIn = async () => {
         try {
-            // Use employee.id if available, falling back to user.id
-            const targetId = user?.employee?.id || user?.id;
-            await clockIn(targetId).unwrap();
+            const loc = await getBrowserLocation();
+
+            await clockIn({
+                employee_id: user?.employee?.id || user?.id,
+                latitude: loc.latitude,
+                longitude: loc.longitude
+            }).unwrap();
+
+            showSnackbar('Clocked in successfully!', 'success');
         } catch (err) {
-            alert(err.data?.error || 'Failed to clock in');
+            console.error('Clock-in error:', err);
+            let errorMsg = err.data?.error || err.message || 'Failed to clock in';
+            if (err.status === 403 && userLocation) {
+                errorMsg += ` (Detected: ${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)})`;
+            } else if (err.status === 403 && loc) {
+                errorMsg += ` (Detected: ${loc.latitude.toFixed(6)}, ${loc.longitude.toFixed(6)})`;
+            }
+            showSnackbar(errorMsg, 'error');
         }
     };
 
+
     const handleClockOut = async () => {
         try {
-            const targetId = user?.employee?.id || user?.id;
-            await clockOut(targetId).unwrap();
+            const loc = await getBrowserLocation().catch(err => {
+                console.warn('Could not get location for clock-out:', err);
+                return null;
+            });
+
+            await clockOut({
+                employee_id: user?.employee?.id || user?.id,
+                latitude: loc?.latitude,
+                longitude: loc?.longitude
+            }).unwrap();
+
+            showSnackbar('Clocked out successfully!', 'success');
         } catch (err) {
-            alert(err.data?.error || 'Failed to clock out');
+            showSnackbar(err.data?.error || 'Failed to clock out', 'error');
         }
     };
 
@@ -180,7 +236,7 @@ const Dashboard = () => {
                     attendance={attendance}
                     onClockIn={handleClockIn}
                     onClockOut={handleClockOut}
-                    isClockingIn={isClockingIn}
+                    isClockingIn={isClockingIn || isObtainingLocation}
                     isClockingOut={isClockingOut}
                     todayAttendance={todayAttendance}
                 />
@@ -196,6 +252,14 @@ const Dashboard = () => {
             }}>
                 <AnnouncementWidget />
             </Box>
+
+
+            <CustomSnackbar
+                open={snackbar.open}
+                onClose={hideSnackbar}
+                message={snackbar.message}
+                severity={snackbar.severity}
+            />
         </Box>
     );
 };

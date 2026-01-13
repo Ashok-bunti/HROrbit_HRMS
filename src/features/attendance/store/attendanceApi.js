@@ -14,18 +14,18 @@ export const attendanceApi = apiSlice.injectEndpoints({
             providesTags: (result, error, id) => [{ type: 'Attendance', id }],
         }),
         clockIn: builder.mutation({
-            query: (employeeId) => ({
+            query: (data) => ({
                 url: '/attendance/clock-in',
                 method: 'POST',
-                body: { employee_id: employeeId },
+                body: data,
             }),
             invalidatesTags: ['Attendance'],
         }),
         clockOut: builder.mutation({
-            query: (employeeId) => ({
+            query: (data) => ({
                 url: '/attendance/clock-out',
                 method: 'POST',
-                body: { employee_id: employeeId },
+                body: data,
             }),
             invalidatesTags: ['Attendance'],
         }),
@@ -56,6 +56,37 @@ export const attendanceApi = apiSlice.injectEndpoints({
             query: () => '/attendance/stats',
             providesTags: ['Attendance'],
         }),
+        getOfficeLocations: builder.query({
+            query: () => '/office-location',
+            providesTags: ['OfficeLocation'],
+        }),
+        getActiveOfficeLocation: builder.query({
+            query: () => '/office-location/active',
+            providesTags: ['OfficeLocation'],
+        }),
+        createOfficeLocation: builder.mutation({
+            query: (data) => ({
+                url: '/office-location',
+                method: 'POST',
+                body: data,
+            }),
+            invalidatesTags: ['OfficeLocation'],
+        }),
+        updateOfficeLocation: builder.mutation({
+            query: ({ id, ...data }) => ({
+                url: `/office-location/${id}`,
+                method: 'PUT',
+                body: data,
+            }),
+            invalidatesTags: ['OfficeLocation'],
+        }),
+        deleteOfficeLocation: builder.mutation({
+            query: (id) => ({
+                url: `/office-location/${id}`,
+                method: 'DELETE',
+            }),
+            invalidatesTags: ['OfficeLocation'],
+        }),
     }),
 });
 
@@ -68,4 +99,9 @@ export const {
     useUpdateAttendanceMutation,
     useDeleteAttendanceMutation,
     useGetAttendanceStatsQuery,
+    useGetOfficeLocationsQuery,
+    useGetActiveOfficeLocationQuery,
+    useCreateOfficeLocationMutation,
+    useUpdateOfficeLocationMutation,
+    useDeleteOfficeLocationMutation,
 } = attendanceApi;

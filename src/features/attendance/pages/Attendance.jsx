@@ -31,6 +31,7 @@ import { useAuth } from '../../../context/AuthContext';
 
 import { usePermissions } from '../../../hooks/usePermissions';
 import { useTheme } from '@mui/material/styles';
+import PageHeader from '../../../components/common/PageHeader';
 
 const Attendance = () => {
     const theme = useTheme();
@@ -43,6 +44,9 @@ const Attendance = () => {
 
     const [clockIn, { isLoading: isClockingIn }] = useClockInMutation();
     const [clockOut, { isLoading: isClockingOut }] = useClockOutMutation();
+
+    const [userLocation, setUserLocation] = useState(null);
+    const [isObtainingLocation, setIsObtainingLocation] = useState(false);
 
 
     const filteredAttendance = (attendanceData?.attendance || []).filter(att =>
@@ -77,6 +81,32 @@ const Attendance = () => {
     const isClockedIn = Boolean(todayAttendance?.check_in_time);
     const isClockedOut = Boolean(todayAttendance?.check_out_time);
 
+    const getBrowserLocation = () => {
+        return new Promise((resolve, reject) => {
+            if (!navigator.geolocation) {
+                reject(new Error('Geolocation is not supported by your browser'));
+                return;
+            }
+            setIsObtainingLocation(true);
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const loc = {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude
+                    };
+                    setUserLocation(loc);
+                    setIsObtainingLocation(false);
+                    resolve(loc);
+                },
+                (err) => {
+                    setIsObtainingLocation(false);
+                    reject(err);
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
+            );
+        });
+    };
+
     const handleClockIn = async () => {
         // 🚫 Same-day re-login prevention
         if (todayAttendance?.check_in_time && todayAttendance?.check_out_time) {
@@ -88,20 +118,56 @@ const Attendance = () => {
         }
 
         try {
-            const res = await clockIn().unwrap();
+            let loc = null;
+            try {
+                loc = await getBrowserLocation();
+                setUserLocation(loc); // Save for Step 2
+            } catch (locationErr) {
+                console.error('Location error:', locationErr);
+                // Continue without loc, the backend will fail with 400 if it's strictly required
+            }
+
+            const res = await clockIn({
+                employee_id: user?.employee?.id || user?.id,
+                latitude: loc?.latitude,
+                longitude: loc?.longitude
+            }).unwrap();
+
             setTodayAttendance(res.attendance);
             showSnackbar('Clocked in successfully!', 'success');
         } catch (err) {
-            if (err?.data?.attendance) {
+            console.error('Clock-in error:', err);
+            let errorMsg = err.data?.error || err.message || 'Failed to clock in';
+
+            if (err.status === 403) {
+                // If we have location details, append them to the error message
+                const detectedLoc = err.data?.detected_location;
+                if (detectedLoc) {
+                    errorMsg += ` (Detected: ${detectedLoc.latitude.toFixed(6)}, ${detectedLoc.longitude.toFixed(6)})`;
+                }
+            }
+
+            if (err.data?.attendance) {
                 setTodayAttendance(err.data.attendance);
             }
-            showSnackbar(err.data?.error || 'Failed to clock in', 'error');
+
+            showSnackbar(errorMsg, 'error');
         }
     };
 
+
     const handleClockOut = async () => {
         try {
-            const res = await clockOut().unwrap();
+            const loc = await getBrowserLocation().catch(err => {
+                console.warn('Could not get location for clock-out:', err);
+                return null;
+            });
+
+            const res = await clockOut({
+                employee_id: user?.employee?.id || user?.id,
+                latitude: loc?.latitude,
+                longitude: loc?.longitude
+            }).unwrap();
 
             // 🔥 IMMEDIATE UI UPDATE
             setTodayAttendance(res.attendance);
@@ -119,11 +185,10 @@ const Attendance = () => {
         {
             field: 'employee_name',
             headerName: 'EMPLOYEE',
-            flex: 1.5,
-            minWidth: 200,
+            flex: 1.2,
+            minWidth: 180,
             align: 'left',
             headerAlign: 'left',
-            hide: !isAdmin,
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
                     <Typography variant="body2" fontWeight={600} color="primary.main">
@@ -151,7 +216,8 @@ const Attendance = () => {
         {
             field: 'check_in_time_formatted',
             headerName: 'CHECK IN',
-            width: 130,
+            flex: 1,
+            minWidth: 120,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => {
@@ -166,7 +232,8 @@ const Attendance = () => {
         {
             field: 'check_out_time',
             headerName: 'CHECK OUT',
-            width: 130,
+            flex: 1,
+            minWidth: 120,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => {
@@ -181,7 +248,8 @@ const Attendance = () => {
         {
             field: 'work_hours',
             headerName: 'WORK HOURS',
-            width: 140,
+            flex: 1,
+            minWidth: 120,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => (
@@ -193,7 +261,8 @@ const Attendance = () => {
         {
             field: 'status',
             headerName: 'STATUS',
-            width: 130,
+            flex: 1,
+            minWidth: 120,
             align: 'center',
             headerAlign: 'center',
             renderCell: (params) => {
@@ -246,12 +315,12 @@ const Attendance = () => {
                                 {(!isClockedIn || (isClockedIn && isClockedOut)) && (
                                     <Button
                                         variant="contained"
-                                        startIcon={<Login />}
+                                        startIcon={isObtainingLocation ? <CircularProgress size={20} color="inherit" /> : <Login />}
                                         onClick={handleClockIn}
-                                        disabled={isClockingIn}
+                                        disabled={isClockingIn || isObtainingLocation}
                                         sx={{ borderRadius: 2, px: 3, whiteSpace: 'nowrap' }}
                                     >
-                                        Clock In
+                                        {isObtainingLocation ? 'Getting Location...' : 'Clock In'}
                                     </Button>
                                 )}
 
@@ -446,6 +515,11 @@ const Attendance = () => {
                                 pagination: {
                                     paginationModel: { page: 0, pageSize: 10 },
                                 },
+                                columns: {
+                                    columnVisibilityModel: {
+                                        employee_name: isAdmin,
+                                    },
+                                },
                             }}
                             pageSizeOptions={[10, 25, 50]}
                             disableRowSelectionOnClick
@@ -456,6 +530,7 @@ const Attendance = () => {
                     </Box>
                 </Card>
             )}
+
 
             <CustomSnackbar
                 open={snackbar.open}

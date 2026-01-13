@@ -42,6 +42,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import GavelIcon from '@mui/icons-material/Gavel';
 import DescriptionIcon from '@mui/icons-material/Description';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
 
 const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, toggleSidebar }) => {
     const navigate = useNavigate();
@@ -147,6 +148,12 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, tog
                 icon: <AccessTimeIcon />,
                 path: '/attendance',
                 permission: 'attendance:read',
+            },
+            {
+                text: 'Office Locations',
+                icon: <LocationOnIcon />,
+                path: '/admin/office-locations',
+                permission: 'attendance:manage',
             }
         ].filter(child => !child.permission || can(child.permission.split(':')[0], child.permission.split(':')[1]));
 
@@ -197,15 +204,15 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, tog
         if (!can('leaves', 'read')) {
             menuItems.push({ text: 'Leaves', icon: <EventNoteIcon />, path: '/employee/leaves' });
         }
-
+ 
         if (!can('attendance', 'read')) {
             menuItems.push({ text: 'Attendance', icon: <AccessTimeIcon />, path: '/employee/attendance' });
         }
-
+ 
         if (!can('payroll', 'read')) {
             menuItems.push({ text: 'Payslips', icon: <ReceiptIcon />, path: '/employee/payslips' });
         }
-
+ 
         if (!can('surveys', 'read')) {
             menuItems.push({ text: 'Engagement', icon: <CampaignIcon />, path: '/employee/engagement' });
         }
