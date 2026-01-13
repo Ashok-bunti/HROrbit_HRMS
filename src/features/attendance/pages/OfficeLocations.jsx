@@ -177,7 +177,7 @@ const OfficeLocations = () => {
         {
             field: 'name',
             headerName: 'OFFICE NAME',
-            flex: 1,
+            flex: 1.2,
             minWidth: 150,
             renderCell: (params) => (
                 <Box sx={{ display: 'flex', alignItems: 'center', height: '100%' }}>
@@ -193,20 +193,23 @@ const OfficeLocations = () => {
             flex: 1.5,
             minWidth: 200,
             renderCell: (params) => (
-                <Typography variant="body2" noWrap>
-                    {params.value || '- -'}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', overflow: 'hidden' }}>
+                    <Typography variant="body2" noWrap sx={{ width: '100%' }}>
+                        {params.value || '- -'}
+                    </Typography>
+                </Box>
             )
         },
         {
             field: 'coords',
             headerName: 'COORDINATES',
-            width: 200,
+            flex: 1.2,
+            minWidth: 180,
             valueGetter: (value, row) => `${row.latitude}, ${row.longitude}`,
             renderCell: (params) => (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <LocationOnIcon fontSize="small" color="action" />
-                    <Typography variant="caption" sx={{ fontFamily: 'monospace' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', height: '100%', gap: 0.5 }}>
+                    <LocationOnIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+                    <Typography variant="caption" sx={{ fontFamily: 'monospace', color: 'text.secondary' }}>
                         {params.value}
                     </Typography>
                 </Box>
@@ -215,39 +218,52 @@ const OfficeLocations = () => {
         {
             field: 'radius_meters',
             headerName: 'RADIUS',
-            width: 100,
-            renderCell: (params) => `${params.value}m`
+            flex: 0.7,
+            minWidth: 80,
+            align: 'center',
+            headerAlign: 'center',
+            renderCell: (params) => (
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                    <Typography variant="body2">{params.value}m</Typography>
+                </Box>
+            )
         },
         {
             field: 'is_active',
             headerName: 'STATUS',
-            width: 120,
+            flex: 1,
+            minWidth: 110,
+            align: 'center',
+            headerAlign: 'center',
             renderCell: (params) => (
-                <Chip
-                    label={params.value ? 'Active' : 'Inactive'}
-                    color={params.value ? 'success' : 'default'}
-                    size="small"
-                    variant={params.value ? 'filled' : 'outlined'}
-                    sx={{ fontWeight: 600 }}
-                />
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+                    <Chip
+                        label={params.value ? 'Active' : 'Inactive'}
+                        color={params.value ? 'success' : 'default'}
+                        size="small"
+                        variant={params.value ? 'outlined' : 'outlined'}
+                        sx={{ fontWeight: 600, minWidth: 80 }}
+                    />
+                </Box>
             )
         },
         {
             field: 'actions',
             type: 'actions',
             headerName: 'ACTIONS',
-            width: 100,
+            flex: 0.8,
+            minWidth: 100,
             getActions: (params) => [
                 <GridActionsCellItem
                     key={`edit-${params.id}`}
-                    icon={<Tooltip title="Edit"><EditIcon /></Tooltip>}
+                    icon={<Tooltip title="Edit"><EditIcon sx={{ fontSize: 20 }} /></Tooltip>}
                     label="Edit"
                     onClick={() => handleOpenDialog(params.row)}
                     color="primary"
                 />,
                 <GridActionsCellItem
                     key={`delete-${params.id}`}
-                    icon={<Tooltip title="Delete"><DeleteIcon /></Tooltip>}
+                    icon={<Tooltip title="Delete"><DeleteIcon sx={{ fontSize: 20 }} /></Tooltip>}
                     label="Delete"
                     onClick={() => handleDeleteClick(params.row)}
                     color="error"
@@ -325,15 +341,47 @@ const OfficeLocations = () => {
                     ))}
                 </Stack>
             ) : (
-                <Card sx={{ borderRadius: 2, overflow: 'hidden' }}>
-                    <Box sx={{ height: 600, width: '100%' }}>
+                <Card sx={{ borderRadius: 2, overflow: 'hidden', boxShadow: theme.shadows[2] }}>
+                    <Box sx={{
+                        height: 600,
+                        width: '100%',
+                        '& .MuiDataGrid-root': {
+                            border: 'none',
+                            '& .MuiDataGrid-cell': {
+                                borderBottom: '1px solid',
+                                borderColor: 'divider',
+                                '&:focus': { outline: 'none' }
+                            },
+                            '& .MuiDataGrid-columnHeader': {
+                                backgroundColor: theme.palette.mode === 'dark' ? '#1e1e1e' : '#f8f9fa',
+                                color: 'text.secondary',
+                                fontWeight: 700,
+                                fontSize: '0.75rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '1px',
+                                '&:focus': { outline: 'none' }
+                            },
+                            '& .MuiDataGrid-row:hover': {
+                                backgroundColor: alpha(theme.palette.primary.main, 0.04),
+                            },
+                            '& .MuiDataGrid-columnSeparator': { display: 'none' },
+                            '& ::-webkit-scrollbar': { width: 8, height: 8 },
+                            '& ::-webkit-scrollbar-track': { backgroundColor: 'transparent' },
+                            '& ::-webkit-scrollbar-thumb': {
+                                backgroundColor: theme.palette.divider,
+                                borderRadius: 4,
+                                '&:hover': { backgroundColor: theme.palette.text.disabled },
+                            },
+                        }
+                    }}>
                         <DataGrid
                             rows={filteredLocations}
                             columns={columns}
                             loading={isLoading}
                             pageSizeOptions={[10, 25, 50]}
                             disableRowSelectionOnClick
-                            density="comfortable"
+                            density="compact"
+                            rowHeight={56}
                         />
                     </Box>
                 </Card>
