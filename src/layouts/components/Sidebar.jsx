@@ -164,7 +164,7 @@ const Sidebar = ({ mobileOpen, handleDrawerToggle, drawerWidth, isCollapsed, tog
         }
     }
 
-    if (can('biometric', 'read')) {
+    if (can('biometric', 'read') || userRole === 'manager' || userRole === 'teamlead') {
         menuItems.push({ text: 'Biometric', icon: <FingerprintIcon />, path: '/biometric' });
     }
 

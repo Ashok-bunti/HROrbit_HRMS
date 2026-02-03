@@ -376,7 +376,7 @@ const BiometricDashboard = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const { snackbar, showSnackbar, hideSnackbar } = useSnackbar();
-    const { can, isHR, isAdmin } = usePermissions();
+    const { can, isHR, isAdmin, userRole } = usePermissions();
     const { user } = useAuth();
     const [tabValue, setTabValue] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
@@ -734,7 +734,7 @@ const BiometricDashboard = () => {
     if (error) return <Box sx={{ p: 4 }}><Alert severity="error">System Error: Failed to fetch biometric stream. {error.message}</Alert></Box>;
 
     // Role-based UI logic
-    const isManager = isHR || isAdmin || can('biometric', 'manage');
+    const isManager = isHR || isAdmin || userRole === 'manager' || userRole === 'teamlead' || can('biometric', 'manage');
 
     if (!isManager) {
         return <EmployeeBiometricView

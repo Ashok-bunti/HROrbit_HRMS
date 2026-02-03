@@ -173,7 +173,7 @@ const AppRoutes = () => {
                 <Route
                     path="biometric"
                     element={
-                        <PrivateRoute requiredPermission="biometric:read">
+                        <PrivateRoute>
                             <BiometricDashboard />
                         </PrivateRoute>
                     }
